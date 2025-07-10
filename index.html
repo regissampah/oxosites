@@ -114,6 +114,7 @@
   let loop = false;
   let autoplay = true;
   let kodeTerakhir = null;
+  let unsubscribePlaylistListener = null;
 
   function updateToggleUI() {
     document.getElementById('btnShuffle').className = `btn toggle-btn ${shuffle ? 'btn-toggle-active' : 'btn-toggle-inactive'}`;
@@ -257,6 +258,20 @@
       .catch(err => alert("Gagal menyimpan: " + err));
   }
 
+  function listenToPlaylistChanges(code) {
+    if (unsubscribePlaylistListener) unsubscribePlaylistListener();
+    unsubscribePlaylistListener = db.collection("playlists").doc(code)
+      .onSnapshot(doc => {
+        if (doc.exists) {
+          playlist = doc.data().playlist;
+          kodeTerakhir = code;
+          updatePlaylist();
+        }
+      }, err => {
+        console.error("Gagal mendengarkan perubahan playlist:", err);
+      });
+  }
+
   function loadPlaylist() {
     const code = document.getElementById('loadCode').value.trim();
     if (!code) return alert('Kode tidak boleh kosong');
@@ -267,6 +282,7 @@
           kodeTerakhir = code;
           updatePlaylist();
           if (playlist.length > 0) playVideo(0);
+          listenToPlaylistChanges(code);
         } else {
           alert("Kode tidak ditemukan.");
         }

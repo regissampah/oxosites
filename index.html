@@ -231,7 +231,7 @@
   function playVideo(index) {
     if (index >= 0 && index < playlist.length) {
       currentIndex = index;
-      if (player && typeof player.loadVideoById === 'function') {
+      if (playerReady && player && typeof player.loadVideoById === 'function') {
         player.loadVideoById(playlist[index].id);
         player.playVideo();
       } else {

@@ -88,7 +88,9 @@
   </div>
 
   <div id="playlist" class="mb-4"></div>
-  <div id="player-container" class="text-center"></div>
+  <div id="player-container" class="text-center">
+  <div id="player"></div>
+</div>
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -211,7 +213,7 @@
   }
 
   function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player-container', {
+    player = new YT.Player('player', {
       height: '390',
       width: '640',
       videoId: '',

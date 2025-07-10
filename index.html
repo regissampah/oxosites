@@ -69,6 +69,11 @@
     </div>
   </div>
 
+  <div class="mb-3 text-center">
+    <button class="btn btn-secondary" onclick="toggleShuffle()"><i class="fas fa-random"></i> Shuffle</button>
+    <button class="btn btn-secondary" onclick="toggleLoop()"><i class="fas fa-redo"></i> Loop</button>
+  </div>
+
   <div id="playlist" class="mb-4"></div>
   <div id="player-container" class="text-center">
     <div id="player"></div>
@@ -94,6 +99,7 @@
   let playerReady = false;
   let currentIndex = -1;
   let shuffle = false;
+  let loop = false;
   let kodeTerakhir = null;
 
   function onYouTubeIframeAPIReady() {
@@ -111,6 +117,32 @@
         'onStateChange': onPlayerStateChange
       }
     });
+  }
+
+  function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.ENDED) {
+      if (shuffle) {
+        const nextIndex = Math.floor(Math.random() * playlist.length);
+        playVideo(nextIndex);
+      } else {
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < playlist.length) {
+          playVideo(nextIndex);
+        } else if (loop) {
+          playVideo(0);
+        }
+      }
+    }
+  }
+
+  function toggleShuffle() {
+    shuffle = !shuffle;
+    alert("Shuffle: " + (shuffle ? "Aktif" : "Nonaktif"));
+  }
+
+  function toggleLoop() {
+    loop = !loop;
+    alert("Loop: " + (loop ? "Aktif" : "Nonaktif"));
   }
 
   function addToPlaylist() {
@@ -205,10 +237,6 @@
     input.select();
     document.execCommand('copy');
     alert('Kode disalin: ' + input.value);
-  }
-
-  function onPlayerStateChange(event) {
-    // Tambahkan autoplay berikutnya jika diperlukan
   }
 </script>
 </body>

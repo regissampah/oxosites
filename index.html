@@ -237,7 +237,8 @@
         player.loadVideoById(playlist[index].id);
         player.playVideo();
       } else {
-        console.warn("Player belum siap.");
+        console.warn("Player belum siap, mencoba ulang dalam 500ms...");
+        setTimeout(() => playVideo(index), 500);
       }
     }
   }
@@ -280,6 +281,8 @@
     document.getElementById('loadButton').addEventListener('click', loadPlaylist);
     document.getElementById('copyButton').addEventListener('click', copyCode);
   });
+
+  window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 </script>
 </body>
 </html>

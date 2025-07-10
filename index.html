@@ -89,8 +89,8 @@
 
   <div id="playlist" class="mb-4"></div>
   <div id="player-container" class="text-center">
-  <div id="player"></div>
-</div>
+    <div id="player"></div>
+  </div>
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -219,7 +219,8 @@
       videoId: '',
       playerVars: {
         autoplay: 1,
-        controls: 1
+        controls: 1,
+        origin: window.location.origin
       },
       events: {
         'onReady': () => {
@@ -231,26 +232,22 @@
   }
 
   function playVideo(index) {
-  if (index >= 0 && index < playlist.length) {
-    currentIndex = index;
+    if (index >= 0 && index < playlist.length) {
+      currentIndex = index;
 
-    const tryPlay = () => {
-      if (player && typeof player.loadVideoById === 'function' && playerReady) {
-        player.loadVideoById(playlist[index].id);
-        setTimeout(() => {
-          player.playVideo();
-        }, 500);
-      } else {
-        setTimeout(tryPlay, 300);
-      }
-    };
+      const tryPlay = () => {
+        if (player && typeof player.loadVideoById === 'function' && playerReady) {
+          player.loadVideoById(playlist[index].id);
+          setTimeout(() => {
+            player.playVideo();
+          }, 500);
+        } else {
+          console.warn("Player belum siap, mencoba ulang dalam 500ms...");
+          setTimeout(tryPlay, 500);
+        }
+      };
 
-    tryPlay();
-  }
-} else {
-        console.warn("Player belum siap, mencoba ulang dalam 500ms...");
-        setTimeout(() => playVideo(index), 500);
-      }
+      tryPlay();
     }
   }
 

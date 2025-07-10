@@ -231,12 +231,23 @@
   }
 
   function playVideo(index) {
-    if (index >= 0 && index < playlist.length) {
-      currentIndex = index;
-      if (playerReady && player && typeof player.loadVideoById === 'function') {
+  if (index >= 0 && index < playlist.length) {
+    currentIndex = index;
+
+    const tryPlay = () => {
+      if (player && typeof player.loadVideoById === 'function' && playerReady) {
         player.loadVideoById(playlist[index].id);
-        player.playVideo();
+        setTimeout(() => {
+          player.playVideo();
+        }, 500);
       } else {
+        setTimeout(tryPlay, 300);
+      }
+    };
+
+    tryPlay();
+  }
+} else {
         console.warn("Player belum siap, mencoba ulang dalam 500ms...");
         setTimeout(() => playVideo(index), 500);
       }

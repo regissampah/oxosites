@@ -193,6 +193,20 @@
       const el = document.createElement('div');
       el.className = 'playlist-item';
       el.setAttribute('data-id', index);
+
+      const controls = `
+        <button class="btn btn-sm btn-success" onclick="playVideo(${index})"><i class="fas fa-play"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="removeVideo(${index})"><i class="fas fa-trash"></i></button>
+      `;
+
+      let moveControls = '';
+      if (/Mobi|Android/i.test(navigator.userAgent)) {
+        moveControls = `
+          <button class="btn btn-sm btn-outline-secondary" onclick="moveUp(${index})"><i class="fas fa-arrow-up"></i></button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="moveDown(${index})"><i class="fas fa-arrow-down"></i></button>
+        `;
+      }
+
       el.innerHTML = `
         <img src="https://img.youtube.com/vi/${item.id}/0.jpg" class="thumbnail">
         <div class="info">
@@ -200,24 +214,27 @@
           <small>https://youtu.be/${item.id}</small>
         </div>
         <div class="controls">
-          <button class="btn btn-sm btn-success" onclick="playVideo(${index})"><i class="fas fa-play"></i></button>
-          <button class="btn btn-sm btn-danger" onclick="removeVideo(${index})"><i class="fas fa-trash"></i></button>
+          ${controls}
+          ${moveControls}
         </div>
       `;
       list.appendChild(el);
     });
-    Sortable.create(list, {
-      animation: 150,
-      onEnd: (evt) => {
-        const movedItem = playlist.splice(evt.oldIndex, 1)[0];
-        playlist.splice(evt.newIndex, 0, movedItem);
-        updatePlaylist();
-        if (kodeTerakhir) {
-          db.collection("playlists").doc(kodeTerakhir).set({ playlist })
-            .catch(err => console.error("Gagal update playlist: ", err));
+
+    if (!/Mobi|Android/i.test(navigator.userAgent)) {
+      Sortable.create(list, {
+        animation: 150,
+        onEnd: (evt) => {
+          const movedItem = playlist.splice(evt.oldIndex, 1)[0];
+          playlist.splice(evt.newIndex, 0, movedItem);
+          updatePlaylist();
+          if (kodeTerakhir) {
+            db.collection("playlists").doc(kodeTerakhir).set({ playlist })
+              .catch(err => console.error("Gagal update playlist: ", err));
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   function playVideo(index) {
@@ -294,6 +311,22 @@
     input.select();
     document.execCommand('copy');
     alert('Kode disalin: ' + input.value);
+  }
+
+  function moveUp(index) {
+    if (index > 0) {
+      [playlist[index], playlist[index - 1]] = [playlist[index - 1], playlist[index]];
+      updatePlaylist();
+      if (kodeTerakhir) db.collection("playlists").doc(kodeTerakhir).set({ playlist });
+    }
+  }
+
+  function moveDown(index) {
+    if (index < playlist.length - 1) {
+      [playlist[index], playlist[index + 1]] = [playlist[index + 1], playlist[index]];
+      updatePlaylist();
+      if (kodeTerakhir) db.collection("playlists").doc(kodeTerakhir).set({ playlist });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", updateToggleUI);

@@ -53,10 +53,14 @@
   <div class="mb-3">
     <input id="youtubeLink" class="form-control" placeholder="Tempel link YouTube...">
   </div>
-  <div class="mb-3">
+  <div class="mb-3 d-flex flex-wrap gap-2">
     <button class="btn btn-primary" onclick="addToPlaylist()"><i class="fas fa-plus"></i> Tambah ke Playlist</button>
     <button class="btn btn-success" onclick="savePlaylist()"><i class="fas fa-save"></i> Simpan Playlist</button>
+    <button class="btn btn-secondary" onclick="toggleShuffle()"><i class="fas fa-random"></i> Shuffle</button>
+    <button class="btn btn-secondary" onclick="toggleLoop()"><i class="fas fa-redo"></i> Loop</button>
+    <button class="btn btn-secondary" onclick="toggleAutoplay()"><i class="fas fa-play-circle"></i> Autoplay</button>
   </div>
+
   <div class="mb-3">
     <input id="loadCode" class="form-control" placeholder="Masukkan kode playlist">
     <button class="btn btn-warning mt-2" onclick="loadPlaylist()"><i class="fas fa-download"></i> Muat Playlist</button>
@@ -67,11 +71,6 @@
       <input id="shareCode" class="form-control" readonly>
       <button class="btn btn-outline-secondary" onclick="copyShareCode()"><i class="fas fa-copy"></i></button>
     </div>
-  </div>
-
-  <div class="mb-3 text-center">
-    <button class="btn btn-secondary" onclick="toggleShuffle()"><i class="fas fa-random"></i> Shuffle</button>
-    <button class="btn btn-secondary" onclick="toggleLoop()"><i class="fas fa-redo"></i> Loop</button>
   </div>
 
   <div id="playlist" class="mb-4"></div>
@@ -100,6 +99,7 @@
   let currentIndex = -1;
   let shuffle = false;
   let loop = false;
+  let autoplay = true;
   let kodeTerakhir = null;
 
   function onYouTubeIframeAPIReady() {
@@ -120,7 +120,7 @@
   }
 
   function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) {
+    if (event.data === YT.PlayerState.ENDED && autoplay) {
       if (shuffle) {
         const nextIndex = Math.floor(Math.random() * playlist.length);
         playVideo(nextIndex);
@@ -143,6 +143,11 @@
   function toggleLoop() {
     loop = !loop;
     alert("Loop: " + (loop ? "Aktif" : "Nonaktif"));
+  }
+
+  function toggleAutoplay() {
+    autoplay = !autoplay;
+    alert("Autoplay: " + (autoplay ? "Aktif" : "Nonaktif"));
   }
 
   function addToPlaylist() {

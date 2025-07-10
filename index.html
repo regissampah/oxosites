@@ -8,6 +8,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -34,6 +35,7 @@
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
+      cursor: move;
     }
     .form-control:focus {
       box-shadow: none;
@@ -43,6 +45,17 @@
       width: 100%;
       max-width: 640px;
       height: 360px;
+    }
+    .toggle-btn {
+      color: #fff;
+    }
+    .btn-toggle-active {
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    .btn-toggle-inactive {
+      background-color: #6c757d;
+      border-color: #6c757d;
     }
   </style>
 </head>
@@ -56,9 +69,9 @@
   <div class="mb-3 d-flex flex-wrap gap-2">
     <button class="btn btn-primary" onclick="addToPlaylist()"><i class="fas fa-plus"></i> Tambah ke Playlist</button>
     <button class="btn btn-success" onclick="savePlaylist()"><i class="fas fa-save"></i> Simpan Playlist</button>
-    <button class="btn btn-secondary" onclick="toggleShuffle()"><i class="fas fa-random"></i> Shuffle</button>
-    <button class="btn btn-secondary" onclick="toggleLoop()"><i class="fas fa-redo"></i> Loop</button>
-    <button class="btn btn-secondary" onclick="toggleAutoplay()"><i class="fas fa-play-circle"></i> Autoplay</button>
+    <button id="btnShuffle" class="btn toggle-btn" onclick="toggleShuffle()"><i class="fas fa-random"></i> Shuffle</button>
+    <button id="btnLoop" class="btn toggle-btn" onclick="toggleLoop()"><i class="fas fa-redo"></i> Loop</button>
+    <button id="btnAutoplay" class="btn toggle-btn" onclick="toggleAutoplay()"><i class="fas fa-play-circle"></i> Autoplay</button>
   </div>
 
   <div class="mb-3">
@@ -102,6 +115,12 @@
   let autoplay = true;
   let kodeTerakhir = null;
 
+  function updateToggleUI() {
+    document.getElementById('btnShuffle').className = `btn toggle-btn ${shuffle ? 'btn-toggle-active' : 'btn-toggle-inactive'}`;
+    document.getElementById('btnLoop').className = `btn toggle-btn ${loop ? 'btn-toggle-active' : 'btn-toggle-inactive'}`;
+    document.getElementById('btnAutoplay').className = `btn toggle-btn ${autoplay ? 'btn-toggle-active' : 'btn-toggle-inactive'}`;
+  }
+
   function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
       height: '360',
@@ -137,17 +156,17 @@
 
   function toggleShuffle() {
     shuffle = !shuffle;
-    alert("Shuffle: " + (shuffle ? "Aktif" : "Nonaktif"));
+    updateToggleUI();
   }
 
   function toggleLoop() {
     loop = !loop;
-    alert("Loop: " + (loop ? "Aktif" : "Nonaktif"));
+    updateToggleUI();
   }
 
   function toggleAutoplay() {
     autoplay = !autoplay;
-    alert("Autoplay: " + (autoplay ? "Aktif" : "Nonaktif"));
+    updateToggleUI();
   }
 
   function addToPlaylist() {
@@ -172,6 +191,7 @@
     playlist.forEach((item, index) => {
       const el = document.createElement('div');
       el.className = 'playlist-item';
+      el.setAttribute('data-id', index);
       el.innerHTML = `
         <img src="https://img.youtube.com/vi/${item.id}/0.jpg" class="thumbnail">
         <div class="info">
@@ -184,6 +204,18 @@
         </div>
       `;
       list.appendChild(el);
+    });
+    Sortable.create(list, {
+      animation: 150,
+      onEnd: (evt) => {
+        const movedItem = playlist.splice(evt.oldIndex, 1)[0];
+        playlist.splice(evt.newIndex, 0, movedItem);
+        updatePlaylist();
+        if (kodeTerakhir) {
+          db.collection("playlists").doc(kodeTerakhir).set({ playlist })
+            .catch(err => console.error("Gagal update playlist: ", err));
+        }
+      }
     });
   }
 
@@ -207,6 +239,10 @@
   function removeVideo(index) {
     playlist.splice(index, 1);
     updatePlaylist();
+    if (kodeTerakhir) {
+      db.collection("playlists").doc(kodeTerakhir).set({ playlist })
+        .catch(err => console.error("Gagal update playlist setelah hapus: ", err));
+    }
   }
 
   function savePlaylist() {
@@ -243,6 +279,8 @@
     document.execCommand('copy');
     alert('Kode disalin: ' + input.value);
   }
+
+  document.addEventListener("DOMContentLoaded", updateToggleUI);
 </script>
 </body>
 </html>

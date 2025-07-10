@@ -50,7 +50,24 @@
 <div class="container py-4">
   <h2 class="text-center mb-4"><i class="fas fa-music"></i> Playlist YouTube</h2>
 
-  <!-- ... form UI code tetap sama ... -->
+  <div class="mb-3">
+    <input id="youtubeLink" class="form-control" placeholder="Tempel link YouTube...">
+  </div>
+  <div class="mb-3">
+    <button class="btn btn-primary" onclick="addToPlaylist()"><i class="fas fa-plus"></i> Tambah ke Playlist</button>
+    <button class="btn btn-success" onclick="savePlaylist()"><i class="fas fa-save"></i> Simpan Playlist</button>
+  </div>
+  <div class="mb-3">
+    <input id="loadCode" class="form-control" placeholder="Masukkan kode playlist">
+    <button class="btn btn-warning mt-2" onclick="loadPlaylist()"><i class="fas fa-download"></i> Muat Playlist</button>
+  </div>
+  <div id="shareCodeContainer" class="mb-3" style="display:none;">
+    <label for="shareCode">Kode Playlist:</label>
+    <div class="input-group">
+      <input id="shareCode" class="form-control" readonly>
+      <button class="btn btn-outline-secondary" onclick="copyShareCode()"><i class="fas fa-copy"></i></button>
+    </div>
+  </div>
 
   <div id="playlist" class="mb-4"></div>
   <div id="player-container" class="text-center">
@@ -61,7 +78,6 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCzNJw0-IC_O_VjeBU2Vaxy_pV-LrLH0KY",
     authDomain: "ptube1.firebaseapp.com",
@@ -80,35 +96,120 @@
   let shuffle = false;
   let kodeTerakhir = null;
 
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('player', {
+      height: '360',
+      width: '640',
+      videoId: '',
+      playerVars: {
+        autoplay: 1,
+        controls: 1,
+        origin: window.location.origin
+      },
+      events: {
+        'onReady': (e) => playerReady = true,
+        'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+
+  function addToPlaylist() {
+    const input = document.getElementById('youtubeLink').value.trim();
+    const videoId = extractVideoId(input);
+    if (!videoId) return alert('Link tidak valid.');
+    const title = "Video " + (playlist.length + 1);
+    playlist.push({ id: videoId, title });
+    updatePlaylist();
+    document.getElementById('youtubeLink').value = '';
+  }
+
+  function extractVideoId(url) {
+    const regex = /(?:v=|youtu\.be\/)([\w-]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  }
+
+  function updatePlaylist() {
+    const list = document.getElementById('playlist');
+    list.innerHTML = '';
+    playlist.forEach((item, index) => {
+      const el = document.createElement('div');
+      el.className = 'playlist-item';
+      el.innerHTML = `
+        <img src="https://img.youtube.com/vi/${item.id}/0.jpg" class="thumbnail">
+        <div class="info">
+          <strong>${item.title}</strong><br>
+          <small>https://youtu.be/${item.id}</small>
+        </div>
+        <div class="controls">
+          <button class="btn btn-sm btn-success" onclick="playVideo(${index})"><i class="fas fa-play"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="removeVideo(${index})"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  function playVideo(index) {
+    if (index >= 0 && index < playlist.length) {
+      currentIndex = index;
+      const tryPlay = () => {
+        if (player && typeof player.loadVideoById === 'function' && playerReady) {
+          player.loadVideoById(playlist[index].id);
+          setTimeout(() => {
+            player.playVideo();
+          }, 500);
+        } else {
+          setTimeout(tryPlay, 500);
+        }
+      };
+      tryPlay();
+    }
+  }
+
+  function removeVideo(index) {
+    playlist.splice(index, 1);
+    updatePlaylist();
+  }
+
   function savePlaylist() {
     if (!kodeTerakhir) {
       kodeTerakhir = Math.random().toString(36).substr(2, 7);
     }
-    db.collection("playlists").doc(kodeTerakhir).set({
-      playlist
-    }).then(() => {
-      document.getElementById('shareCode').value = kodeTerakhir;
-      document.getElementById('shareCodeContainer').style.display = 'block';
-    }).catch(err => alert("Gagal menyimpan: " + err));
+    db.collection("playlists").doc(kodeTerakhir).set({ playlist })
+      .then(() => {
+        document.getElementById('shareCode').value = kodeTerakhir;
+        document.getElementById('shareCodeContainer').style.display = 'block';
+      })
+      .catch(err => alert("Gagal menyimpan: " + err));
   }
 
   function loadPlaylist() {
     const code = document.getElementById('loadCode').value.trim();
     if (!code) return alert('Kode tidak boleh kosong');
-    db.collection("playlists").doc(code).get().then(doc => {
-      if (doc.exists) {
-        playlist = doc.data().playlist;
-        kodeTerakhir = code;
-        updatePlaylist();
-        if (playlist.length > 0) playVideo(0);
-        alert("Playlist berhasil dimuat!");
-      } else {
-        alert("Kode tidak ditemukan.");
-      }
-    });
+    db.collection("playlists").doc(code).get()
+      .then(doc => {
+        if (doc.exists) {
+          playlist = doc.data().playlist;
+          kodeTerakhir = code;
+          updatePlaylist();
+          if (playlist.length > 0) playVideo(0);
+        } else {
+          alert("Kode tidak ditemukan.");
+        }
+      });
   }
 
-  // ... kode lain tetap sama, tidak perlu ubah yang tidak terkait penyimpanan ...
+  function copyShareCode() {
+    const input = document.getElementById('shareCode');
+    input.select();
+    document.execCommand('copy');
+    alert('Kode disalin: ' + input.value);
+  }
+
+  function onPlayerStateChange(event) {
+    // Tambahkan autoplay berikutnya jika diperlukan
+  }
 </script>
 </body>
 </html>

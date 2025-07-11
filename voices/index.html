@@ -1,4 +1,3 @@
-<!-- ✅ START: HTML & HEAD -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Group Voice Chat Room</title>
 
-  <!-- ✅ TailwindCSS CDN -->
+  <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ✅ Font Awesome (Icon) -->
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <!-- ✅ WebRTC Simple Peer -->
+  <!-- Simple Peer (WebRTC) -->
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
 
   <style>
@@ -20,173 +19,184 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-<!-- ✅ END: HTML & HEAD -->
 
-<!-- ✅ CHECKPOINT 1: FORM BUAT ROOM -->
-<div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
-  <h2 class="text-xl font-bold mb-4 text-center">🔐 Buat Room</h2>
-  <form id="roomForm">
-    <input id="createRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
-    <input id="createRoomPw" type="password" placeholder="Password" class="w-full mb-4 px-4 py-2 border rounded">
-    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buat Room</button>
-  </form>
-  <button id="showJoinBtn" class="mt-4 w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600">🔑 Gabung Room</button>
-</div>
-
-<!-- ✅ CHECKPOINT 2: FORM GABUNG ROOM -->
-<div id="joinContainer" class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4 hidden">
-  <h2 class="text-xl font-bold mb-4 text-center">🟢 Gabung Room</h2>
-  <form id="joinForm">
-    <input id="joinRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
-    <input id="joinRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
-    <input id="joinName" type="text" placeholder="Nama Kamu" class="w-full mb-2 px-4 py-2 border rounded">
-    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Gabung Room</button>
-  </form>
-</div>
-
-<!-- ✅ CHECKPOINT 3: DAFTAR PESERTA + TOMBOL MUTE/KELUAR -->
-<div id="participantContainer" class="hidden w-full max-w-md bg-white shadow-lg rounded-xl p-6">
-  <h2 class="text-xl font-bold mb-2 text-center">👥 Daftar Peserta</h2>
-  <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
-  <div class="mt-4 flex justify-center space-x-4">
-    <button id="toggleMute" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">🔊 Mute</button>
-    <button id="leaveRoom" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">🚪 Keluar</button>
+  <!-- Buat Room -->
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
+    <h2 class="text-xl font-bold mb-4 text-center">🔐 Buat Room</h2>
+    <form id="roomForm">
+      <input id="createRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="createRoomPw" type="password" placeholder="Password" class="w-full mb-4 px-4 py-2 border rounded">
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buat Room</button>
+    </form>
+    <button id="showJoinBtn" class="mt-4 w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600">🔑 Gabung Room</button>
   </div>
-</div>
 
-<!-- ✅ CHECKPOINT 4: SCRIPT FIREBASE + LOGIKA -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  <!-- Gabung Room -->
+  <div id="joinContainer" class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4 hidden">
+    <h2 class="text-xl font-bold mb-4 text-center">🟢 Gabung Room</h2>
+    <form id="joinForm">
+      <input id="joinRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="joinRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="joinName" type="text" placeholder="Nama Kamu" class="w-full mb-2 px-4 py-2 border rounded">
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Gabung Room</button>
+    </form>
+  </div>
 
-  // ✅ FIREBASE INIT
-  const firebaseConfig = {
-    apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
-    authDomain: "obrolin-bb0dd.firebaseapp.com",
-    databaseURL: "https://obrolin-bb0dd-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "obrolin-bb0dd",
-    storageBucket: "obrolin-bb0dd.appspot.com",
-    messagingSenderId: "1020330152162",
-    appId: "1:1020330152162:web:7f1745be7fcbe3de9c0ebb"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+  <!-- Daftar Peserta -->
+  <div id="participantContainer" class="hidden w-full max-w-md bg-white shadow-lg rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-2 text-center">👥 Daftar Peserta</h2>
+    <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
+    <div class="mt-4 flex justify-center space-x-3">
+      <button id="toggleMute" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">🔊 Mute</button>
+      <button id="leaveRoom" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">🚪 Keluar</button>
+      <button id="shareRoom" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">📤 Share</button>
+    </div>
+  </div>
 
-  // ✅ VARIABLE SETUP
-  const showJoinBtn = document.getElementById('showJoinBtn');
-  const joinContainer = document.getElementById('joinContainer');
-  const participantContainer = document.getElementById('participantContainer');
-  const toggleMute = document.getElementById('toggleMute');
-  const leaveRoom = document.getElementById('leaveRoom');
-  const roomList = document.getElementById('roomList');
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  let localStream, myId, roomId, peers = {}, isMuted = false, userRef;
+    // ✅ FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
+      authDomain: "obrolin-bb0dd.firebaseapp.com",
+      databaseURL: "https://obrolin-bb0dd-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "obrolin-bb0dd",
+      storageBucket: "obrolin-bb0dd.appspot.com",
+      messagingSenderId: "1020330152162",
+      appId: "1:1020330152162:web:7f1745be7fcbe3de9c0ebb"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  // ✅ SHOW FORM GABUNG
-  showJoinBtn.onclick = () => joinContainer.classList.remove('hidden');
+    // ✅ AMBIL ROOM DARI URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefilledRoom = urlParams.get('room');
+    if (prefilledRoom) {
+      document.getElementById('joinContainer').classList.remove('hidden');
+      document.getElementById('showJoinBtn').classList.add('hidden');
+      document.getElementById("joinRoomId").value = prefilledRoom;
+    }
 
-  // ✅ HASH PASSWORD
-  async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
+    const roomForm = document.getElementById('roomForm');
+    const joinForm = document.getElementById('joinForm');
+    const toggleMute = document.getElementById('toggleMute');
+    const leaveRoom = document.getElementById('leaveRoom');
+    const shareRoom = document.getElementById('shareRoom');
+    const showJoinBtn = document.getElementById('showJoinBtn');
+    const participantContainer = document.getElementById('participantContainer');
+    const roomList = document.getElementById('roomList');
+    const joinContainer = document.getElementById('joinContainer');
 
-  // ✅ FORM BUAT ROOM
-  document.getElementById('roomForm').onsubmit = async (e) => {
-    e.preventDefault();
-    roomId = document.getElementById("createRoomId").value.trim();
-    const password = document.getElementById("createRoomPw").value;
-    if (!roomId || !password) return alert("Lengkapi form pembuatan room");
-    const pwHash = await hashPassword(password);
-    await set(ref(db, 'rooms/' + roomId), {
-      password: pwHash,
-      users: {}
-    });
-    alert("Room berhasil dibuat. Bagikan ID ke teman!");
-  };
+    let localStream, myId, roomId, userRef;
+    let isMuted = false;
 
-  // ✅ FORM GABUNG ROOM
-  document.getElementById('joinForm').onsubmit = async (e) => {
-    e.preventDefault();
-    roomId = document.getElementById("joinRoomId").value.trim();
-    const password = document.getElementById("joinRoomPw").value;
-    const username = document.getElementById("joinName").value.trim();
-    if (!roomId || !password || !username) return alert("Lengkapi semua kolom");
+    showJoinBtn.onclick = () => {
+      joinContainer.classList.remove('hidden');
+      showJoinBtn.classList.add('hidden');
+    };
 
-    const snapshot = await get(child(ref(db), 'rooms/' + roomId));
-    if (!snapshot.exists()) return alert("Room tidak ditemukan");
-    const data = snapshot.val();
-    const pwHash = await hashPassword(password);
-    if (pwHash !== data.password) return alert("Password salah!");
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
-    myId = username;
-    userRef = ref(db, `rooms/${roomId}/users/${username}`);
-    await set(userRef, { active: true });
+    roomForm.onsubmit = async (e) => {
+      e.preventDefault();
+      roomId = document.getElementById("createRoomId").value.trim();
+      const password = document.getElementById("createRoomPw").value;
+      if (!roomId || !password) return alert("Lengkapi form");
+      const pwHash = await hashPassword(password);
+      await set(ref(db, 'rooms/' + roomId), { password: pwHash, users: {} });
+      alert("Room dibuat. Bagikan ID ke teman!");
+    };
 
-    participantContainer.classList.remove('hidden');
+    joinForm.onsubmit = async (e) => {
+      e.preventDefault();
+      roomId = document.getElementById("joinRoomId").value.trim();
+      const password = document.getElementById("joinRoomPw").value;
+      const username = document.getElementById("joinName").value.trim();
+      if (!roomId || !password || !username) return alert("Lengkapi semua kolom");
 
-    onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
-      const users = snap.val();
-      roomList.innerHTML = '';
-      for (let user in users) {
-        const li = document.createElement('li');
-        li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
-        li.id = `user-${user}`;
-        roomList.appendChild(li);
+      const snapshot = await get(child(ref(db), 'rooms/' + roomId));
+      if (!snapshot.exists()) return alert("Room tidak ditemukan");
+      const data = snapshot.val();
+      const pwHash = await hashPassword(password);
+      if (pwHash !== data.password) return alert("Password salah!");
+
+      myId = username;
+      userRef = ref(db, `rooms/${roomId}/users/${username}`);
+      await set(userRef, { active: true });
+
+      participantContainer.classList.remove('hidden');
+
+      onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
+        const users = snap.val();
+        roomList.innerHTML = '';
+        for (let user in users) {
+          const li = document.createElement('li');
+          li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
+          li.id = `user-${user}`;
+          roomList.appendChild(li);
+        }
+
+        const isEmpty = Object.values(users).every(u => !u.active);
+        if (isEmpty) {
+          await remove(ref(db, `rooms/${roomId}`));
+          alert('Semua user keluar. Room dihapus.');
+          location.reload();
+        }
+
+        if (!localStream) {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          setupVoiceActivity();
+        }
+      });
+    };
+
+    toggleMute.onclick = () => {
+      if (localStream) {
+        localStream.getAudioTracks()[0].enabled = isMuted;
+        isMuted = !isMuted;
+        toggleMute.textContent = isMuted ? '🔇 Unmute' : '🔊 Mute';
       }
+    };
 
-      const isEmpty = Object.values(users).every(u => !u.active);
-      if (isEmpty) {
-        await remove(ref(db, `rooms/${roomId}`));
-        alert('Room dihapus karena kosong.');
+    leaveRoom.onclick = async () => {
+      if (userRef) {
+        await set(userRef, { active: false });
+        alert("Kamu keluar dari room.");
         location.reload();
       }
+    };
 
-      if (!localStream) {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setupVoiceActivity();
+    shareRoom.onclick = () => {
+      const baseUrl = location.origin + location.pathname;
+      const shareUrl = `${baseUrl}?room=${encodeURIComponent(roomId)}`;
+      const message = `Gabung obrolan suara di room "${roomId}": ${shareUrl}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
+    };
+
+    function setupVoiceActivity() {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const micSource = audioContext.createMediaStreamSource(localStream);
+      micSource.connect(analyser);
+      const dataArray = new Uint8Array(analyser.fftSize);
+
+      function checkVolume() {
+        analyser.getByteFrequencyData(dataArray);
+        const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const el = document.getElementById(`user-${myId}`);
+        if (el) el.classList.toggle('speaking', volume > 30);
+        requestAnimationFrame(checkVolume);
       }
-    });
-  };
-
-  // ✅ TOGGLE MUTE MIC
-  toggleMute.onclick = () => {
-    if (localStream) {
-      localStream.getAudioTracks()[0].enabled = isMuted;
-      isMuted = !isMuted;
-      toggleMute.textContent = isMuted ? '🔇 Unmute' : '🔊 Mute';
+      checkVolume();
     }
-  };
-
-  // ✅ KELUAR ROOM
-  leaveRoom.onclick = async () => {
-    if (userRef) {
-      await set(userRef, { active: false });
-      alert('Kamu keluar dari room.');
-      location.reload();
-    }
-  };
-
-  // ✅ DETEKSI YANG BERBICARA
-  function setupVoiceActivity() {
-    const audioContext = new AudioContext();
-    const analyser = audioContext.createAnalyser();
-    const micSource = audioContext.createMediaStreamSource(localStream);
-    micSource.connect(analyser);
-    const dataArray = new Uint8Array(analyser.fftSize);
-
-    function checkVolume() {
-      analyser.getByteFrequencyData(dataArray);
-      const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-      const el = document.getElementById(`user-${myId}`);
-      if (el) el.classList.toggle('speaking', volume > 30);
-      requestAnimationFrame(checkVolume);
-    }
-    checkVolume();
-  }
-</script>
-
+  </script>
 </body>
 </html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Realtime Voice Chat (PeerJS)</title>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    input, button { margin: 0.5rem 0; padding: 0.5rem; width: 100%; }
+    .section { margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Realtime Voice Chat</h2>
+
+  <div class="section">
+    <label>ID Kamu:</label>
+    <input type="text" id="my-id" placeholder="Misal: user123">
+    <button onclick="connectToPeer()">Aktifkan ID</button>
+    <p><strong>ID aktif:</strong> <span id="current-id">(belum aktif)</span></p>
+  </div>
+
+  <div class="section">
+    <label>ID Teman untuk Call:</label>
+    <input type="text" id="remote-id" placeholder="Misal: user456">
+    <button onclick="callPeer()">🔊 Start Call</button>
+    <button onclick="endCall()">📴 End Call</button>
+  </div>
+
+  <audio id="remoteAudio" autoplay></audio>
+
+  <script>
+    let peer = null;
+    let currentCall = null;
+
+    function connectToPeer() {
+      const id = document.getElementById("my-id").value;
+      if (!id) return alert("Masukkan ID kamu dulu");
+
+      peer = new Peer(id);
+      peer.on("open", function (id) {
+        document.getElementById("current-id").textContent = id;
+        console.log("Peer aktif dengan ID:", id);
+      });
+
+      peer.on("call", function (call) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          call.answer(stream);
+          call.on("stream", function (remoteStream) {
+            document.getElementById("remoteAudio").srcObject = remoteStream;
+          });
+          currentCall = call;
+        });
+      });
+    }
+
+    function callPeer() {
+      const remoteId = document.getElementById("remote-id").value;
+      if (!remoteId || !peer) return alert("Pastikan ID aktif dan ID teman diisi");
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        const call = peer.call(remoteId, stream);
+        call.on("stream", function (remoteStream) {
+          document.getElementById("remoteAudio").srcObject = remoteStream;
+        });
+        currentCall = call;
+      });
+    }
+
+    function endCall() {
+      if (currentCall) {
+        currentCall.close();
+        currentCall = null;
+        document.getElementById("remoteAudio").srcObject = null;
+      }
+    }
+  </script>
+</body>
+</html>

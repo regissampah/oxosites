@@ -64,7 +64,7 @@
     const db = getDatabase(app);
 
     let myId = '', roomId = '', localStream, peers = {}, isMuted = false;
-    let player;
+    let player, playerReady = false;
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = document.getElementById("roomId").value.trim();
@@ -119,24 +119,19 @@
 
       onValue(ref(db, `rooms/${roomId}/youtube`), snap => {
         const val = snap.val();
-        if (!val || !val.action) return;
-        console.log("YouTube Sync Received:", val);
+        if (!val) return;
         checkPlayerReady(() => {
-          if (val.action === 'play' && val.videoId) {
-            player.loadVideoById(val.videoId);
-          } else if (val.action === 'pause') {
-            player.pauseVideo();
-          } else if (val.action === 'resume') {
-            player.playVideo();
-          } else if (val.action === 'stop') {
-            player.stopVideo();
-          }
+          console.log("YouTube Sync Received:", val);
+          if (val.action === 'play') player.loadVideoById(val.videoId);
+          if (val.action === 'pause') player.pauseVideo();
+          if (val.action === 'resume') player.playVideo();
+          if (val.action === 'stop') player.stopVideo();
         });
       });
     };
 
     function checkPlayerReady(callback) {
-      if (typeof player !== "undefined" && player && player.loadVideoById) {
+      if (playerReady && typeof player.loadVideoById === "function") {
         callback();
       } else {
         setTimeout(() => checkPlayerReady(callback), 200);
@@ -216,7 +211,10 @@
     window.onYouTubeIframeAPIReady = () => {
       player = new YT.Player('ytPlayer', {
         height: '180', width: '100%', videoId: '',
-        playerVars: { 'autoplay': 0, 'controls': 1 }
+        playerVars: { 'autoplay': 0, 'controls': 1 },
+        events: {
+          'onReady': () => { playerReady = true; console.log("YouTube Player is ready"); }
+        }
       });
     };
 

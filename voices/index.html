@@ -13,7 +13,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
 
-  <!-- Room Creation -->
+  <!-- Form Buat / Gabung -->
   <div class="w-full max-w-md bg-white rounded-xl shadow p-4 mb-4">
     <h1 class="text-xl font-bold text-center mb-2">🔊 Obrolin</h1>
     <div id="authUI">
@@ -25,7 +25,7 @@
     </div>
   </div>
 
-  <!-- YouTube Sync Controls -->
+  <!-- YouTube Controls -->
   <div id="youtubeControls" class="hidden w-full max-w-md bg-white rounded-xl shadow p-4 mb-4">
     <h2 class="text-lg font-bold mb-2">🎵 YouTube Bersama</h2>
     <input type="text" id="youtubeUrl" placeholder="Tempel URL YouTube di sini" class="w-full p-2 border rounded mb-2">
@@ -42,7 +42,7 @@
     <iframe id="ytPlayer" width="100%" height="180" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </div>
 
-  <!-- Participant List and Controls -->
+  <!-- Daftar Peserta + Control -->
   <div id="participantContainer" class="hidden w-full max-w-md bg-white rounded-xl shadow p-4">
     <h2 class="text-lg font-bold mb-2">👥 Daftar Peserta</h2>
     <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
@@ -162,7 +162,7 @@
     shareBtn.onclick = () => {
       const room = roomIdInput.value.trim();
       const password = roomPwInput.value.trim();
-      const url = `https://wa.me/?text=Gabung%20Room%20Obrolin%20%F0%9F%94%8A%0ARoom%20ID:%20${room}%0APassword:%20${password}%0Ahttps://your-app-url.com`;
+      const url = `https://wa.me/?text=Gabung%20Room%20Obrolin%20🔊%0ARoom%20ID:%20${room}%0APassword:%20${password}%0Ahttps://your-app-url.com`;
       window.open(url, '_blank');
     };
 
@@ -172,7 +172,6 @@
       const micSource = audioContext.createMediaStreamSource(localStream);
       micSource.connect(analyser);
       const dataArray = new Uint8Array(analyser.fftSize);
-
       function checkVolume() {
         analyser.getByteFrequencyData(dataArray);
         const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;

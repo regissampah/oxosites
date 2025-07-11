@@ -119,12 +119,18 @@
 
       onValue(ref(db, `rooms/${roomId}/youtube`), snap => {
         const val = snap.val();
-        if (!val) return;
+        if (!val || !val.action) return;
+        console.log("YouTube Sync Received:", val);
         checkPlayerReady(() => {
-          if (val.action === 'play') player.loadVideoById(val.videoId);
-          if (val.action === 'pause') player.pauseVideo();
-          if (val.action === 'resume') player.playVideo();
-          if (val.action === 'stop') player.stopVideo();
+          if (val.action === 'play' && val.videoId) {
+            player.loadVideoById(val.videoId);
+          } else if (val.action === 'pause') {
+            player.pauseVideo();
+          } else if (val.action === 'resume') {
+            player.playVideo();
+          } else if (val.action === 'stop') {
+            player.stopVideo();
+          }
         });
       });
     };

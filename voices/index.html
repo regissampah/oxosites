@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Obrolin - Voice Room</title>
+  <title>Obrolin - Voice Room + YouTube Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
@@ -25,19 +25,27 @@
     </div>
   </div>
 
-  <!-- Participants -->
-  <div id="participants" class="hidden w-full max-w-md bg-white rounded-xl shadow p-4">
-    <h2 class="text-lg font-bold mb-2">Peserta</h2>
-    <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
-    <div class="mt-4 text-center">
-      <button id="toggleMute" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">🔊 Mute</button>
-      <button id="leaveRoom" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ml-2">🚪 Keluar</button>
+  <!-- YouTube Sync Controls -->
+  <div id="youtubeControls" class="hidden w-full max-w-md bg-white rounded-xl shadow p-4 mb-4">
+    <h2 class="text-lg font-bold mb-2">🎵 YouTube Bersama</h2>
+    <input type="text" id="youtubeUrl" placeholder="Tempel URL YouTube di sini" class="w-full p-2 border rounded mb-2">
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="shareYouTubeLink()" class="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700">Bagikan</button>
+      <button onclick="pauseYoutubeAll()" class="bg-yellow-500 text-white px-4 py-2 rounded">Pause</button>
+      <button onclick="resumeYoutubeAll()" class="bg-blue-500 text-white px-4 py-2 rounded">Lanjutkan</button>
+      <button onclick="stopYoutubeAll()" class="bg-red-500 text-white px-4 py-2 rounded">Stop</button>
     </div>
   </div>
 
+  <!-- YouTube Player -->
+  <div class="yt-container w-full max-w-md hidden" id="ytContainer">
+    <iframe id="ytPlayer" width="100%" height="180" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
+  <!-- Firebase + Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
@@ -55,15 +63,11 @@
     const roomIdInput = document.getElementById("roomId");
     const roomPwInput = document.getElementById("roomPw");
     const usernameInput = document.getElementById("username");
-    const toggleMute = document.getElementById("toggleMute");
-    const roomList = document.getElementById("roomList");
-    const participants = document.getElementById("participants");
-    const leaveBtn = document.getElementById("leaveRoom");
+    const ytPlayer = document.getElementById("ytPlayer");
+    const ytContainer = document.getElementById("ytContainer");
+    const youtubeControls = document.getElementById("youtubeControls");
 
     let roomId = "";
-    let myId = "";
-    let localStream;
-    let isMuted = false;
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = roomIdInput.value.trim();
@@ -72,9 +76,9 @@
       const pwHash = await hashPassword(password);
       await set(ref(db, `rooms/${roomId}`), {
         password: pwHash,
-        users: {}
+        yt: { video: '', paused: false }
       });
-      alert("Room berhasil dibuat. Silakan gabung sebagai peserta.");
+      alert("Room berhasil dibuat. Sekarang gabung sebagai user.");
     };
 
     document.getElementById("joinBtn").onclick = async () => {
@@ -83,54 +87,32 @@
       const username = usernameInput.value.trim();
       if (!roomId || !password || !username) return alert("Lengkapi semua kolom");
 
-      const snap = await get(child(ref(db), `rooms/${roomId}`));
-      if (!snap.exists()) return alert("Room tidak ditemukan");
+      const roomSnap = await get(child(ref(db), `rooms/${roomId}`));
+      if (roomSnap.exists()) {
+        const room = roomSnap.val();
+        const pwHash = await hashPassword(password);
+        if (room.password !== pwHash) return alert("Password salah!");
+      } else {
+        return alert("Room belum dibuat. Silakan buat dulu.");
+      }
 
-      const pwHash = await hashPassword(password);
-      if (snap.val().password !== pwHash) return alert("Password salah!");
-
-      myId = username;
-      const userRef = ref(db, `rooms/${roomId}/users/${username}`);
-      await set(userRef, { active: true });
-
-      window.addEventListener("beforeunload", () => set(userRef, { active: false }));
       document.getElementById("authUI").classList.add("hidden");
-      participants.classList.remove("hidden");
+      youtubeControls.classList.remove("hidden");
+      ytContainer.classList.remove("hidden");
 
-      onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
-        const users = snap.val();
-        roomList.innerHTML = '';
-        for (let user in users) {
-          const li = document.createElement('li');
-          li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
-          li.id = `user-${user}`;
-          roomList.appendChild(li);
-        }
-
-        const isEmpty = Object.values(users).every(u => !u.active);
-        if (isEmpty) {
-          await remove(ref(db, `rooms/${roomId}`));
-          alert('Semua user keluar. Room dihapus otomatis.');
-          location.reload();
-        }
-
-        if (!localStream) {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          setupVoiceActivity();
+      onValue(ref(db, `rooms/${roomId}/yt`), (snap) => {
+        const ytData = snap.val();
+        if (!ytData) return;
+        const videoId = ytData.video;
+        const paused = ytData.paused;
+        if (videoId) {
+          ytPlayer.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+          setTimeout(() => {
+            const cmd = paused ? 'pauseVideo' : 'playVideo';
+            ytPlayer.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
+          }, 1000);
         }
       });
-    };
-
-    toggleMute.onclick = () => {
-      if (localStream) {
-        localStream.getAudioTracks()[0].enabled = isMuted;
-        isMuted = !isMuted;
-        toggleMute.textContent = isMuted ? '🔇 Unmute' : '🔊 Mute';
-      }
-    };
-
-    leaveBtn.onclick = () => {
-      location.reload();
     };
 
     async function hashPassword(password) {
@@ -140,22 +122,28 @@
       return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function setupVoiceActivity() {
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      const micSource = audioContext.createMediaStreamSource(localStream);
-      micSource.connect(analyser);
+    window.shareYouTubeLink = () => {
+      const url = document.getElementById("youtubeUrl").value;
+      const id = extractVideoId(url);
+      if (id) set(ref(db, `rooms/${roomId}/yt`), { video: id, paused: false });
+    };
 
-      const dataArray = new Uint8Array(analyser.fftSize);
+    window.pauseYoutubeAll = () => {
+      set(ref(db, `rooms/${roomId}/yt/paused`), true);
+    };
 
-      function checkVolume() {
-        analyser.getByteFrequencyData(dataArray);
-        const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        const el = document.getElementById(`user-${myId}`);
-        if (el) el.classList.toggle('speaking', volume > 30);
-        requestAnimationFrame(checkVolume);
-      }
-      checkVolume();
+    window.resumeYoutubeAll = () => {
+      set(ref(db, `rooms/${roomId}/yt/paused`), false);
+    };
+
+    window.stopYoutubeAll = () => {
+      set(ref(db, `rooms/${roomId}/yt`), { video: '', paused: false });
+    };
+
+    function extractVideoId(url) {
+      const regExp = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      return match && match[1].length === 11 ? match[1] : null;
     }
   </script>
 </body>

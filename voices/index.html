@@ -120,12 +120,22 @@
       onValue(ref(db, `rooms/${roomId}/youtube`), snap => {
         const val = snap.val();
         if (!val) return;
-        if (val.action === 'play') player.loadVideoById(val.videoId);
-        if (val.action === 'pause') player.pauseVideo();
-        if (val.action === 'resume') player.playVideo();
-        if (val.action === 'stop') player.stopVideo();
+        checkPlayerReady(() => {
+          if (val.action === 'play') player.loadVideoById(val.videoId);
+          if (val.action === 'pause') player.pauseVideo();
+          if (val.action === 'resume') player.playVideo();
+          if (val.action === 'stop') player.stopVideo();
+        });
       });
     };
+
+    function checkPlayerReady(callback) {
+      if (typeof player !== "undefined" && player && player.loadVideoById) {
+        callback();
+      } else {
+        setTimeout(() => checkPlayerReady(callback), 200);
+      }
+    }
 
     function connectToPeers() {
       onValue(ref(db, `rooms/${roomId}/users`), snap => {
@@ -197,21 +207,6 @@
       detect();
     }
 
-    function extractVideoId(url) {
-      try {
-        const parsed = new URL(url);
-        if (parsed.hostname.includes("youtu.be")) {
-          return parsed.pathname.slice(1);
-        }
-        if (parsed.hostname.includes("youtube.com")) {
-          return parsed.searchParams.get("v");
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    }
-
     window.onYouTubeIframeAPIReady = () => {
       player = new YT.Player('ytPlayer', {
         height: '180', width: '100%', videoId: '',
@@ -221,8 +216,8 @@
 
     window.shareYouTubeLink = () => {
       const url = document.getElementById("youtubeUrl").value.trim();
-      const videoId = extractVideoId(url);
-      if (!videoId) return alert("URL tidak valid atau tidak dikenali formatnya.");
+      const videoId = url.includes('youtu.be') ? url.split('/').pop().split('?')[0] : url.split("v=")[1]?.split("&")[0];
+      if (!videoId) return alert("URL tidak valid");
       update(ref(db, `rooms/${roomId}/youtube`), { videoId, action: 'play' });
     };
     window.pauseYoutubeAll = () => update(ref(db, `rooms/${roomId}/youtube`), { action: 'pause' });

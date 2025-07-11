@@ -42,10 +42,16 @@
     <iframe id="ytPlayer" width="100%" height="180" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </div>
 
+  <!-- User List -->
+  <div id="userListContainer" class="w-full max-w-md bg-white rounded-xl shadow p-4 mb-4 hidden">
+    <h2 class="font-bold mb-2">👥 Peserta:</h2>
+    <ul id="userList" class="list-disc list-inside text-gray-700"></ul>
+  </div>
+
   <!-- Firebase + Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, get, child, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
@@ -66,6 +72,8 @@
     const ytPlayer = document.getElementById("ytPlayer");
     const ytContainer = document.getElementById("ytContainer");
     const youtubeControls = document.getElementById("youtubeControls");
+    const userListContainer = document.getElementById("userListContainer");
+    const userList = document.getElementById("userList");
 
     let roomId = "";
 
@@ -96,9 +104,26 @@
         return alert("Room belum dibuat. Silakan buat dulu.");
       }
 
+      const userRef = ref(db, `rooms/${roomId}/users/${username}`);
+      await set(userRef, { active: true });
+      onDisconnect(userRef).remove();
+
       document.getElementById("authUI").classList.add("hidden");
       youtubeControls.classList.remove("hidden");
       ytContainer.classList.remove("hidden");
+
+      onValue(ref(db, `rooms/${roomId}/users`), (snap) => {
+        const users = snap.val();
+        userList.innerHTML = '';
+        if (users) {
+          Object.keys(users).forEach((user) => {
+            const li = document.createElement('li');
+            li.textContent = `${user}`;
+            userList.appendChild(li);
+          });
+          userListContainer.classList.remove("hidden");
+        }
+      });
 
       onValue(ref(db, `rooms/${roomId}/yt`), (snap) => {
         const ytData = snap.val();

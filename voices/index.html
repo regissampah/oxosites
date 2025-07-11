@@ -197,6 +197,21 @@
       detect();
     }
 
+    function extractVideoId(url) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes("youtu.be")) {
+          return parsed.pathname.slice(1);
+        }
+        if (parsed.hostname.includes("youtube.com")) {
+          return parsed.searchParams.get("v");
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }
+
     window.onYouTubeIframeAPIReady = () => {
       player = new YT.Player('ytPlayer', {
         height: '180', width: '100%', videoId: '',
@@ -206,8 +221,8 @@
 
     window.shareYouTubeLink = () => {
       const url = document.getElementById("youtubeUrl").value.trim();
-      const videoId = url.split("v=")[1]?.split("&")[0];
-      if (!videoId) return alert("URL tidak valid");
+      const videoId = extractVideoId(url);
+      if (!videoId) return alert("URL tidak valid atau tidak dikenali formatnya.");
       update(ref(db, `rooms/${roomId}/youtube`), { videoId, action: 'play' });
     };
     window.pauseYoutubeAll = () => update(ref(db, `rooms/${roomId}/youtube`), { action: 'pause' });

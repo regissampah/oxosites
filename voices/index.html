@@ -8,44 +8,40 @@
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
-  <style>.speaking { background-color: #d1fae5; }</style>
+  <style>
+    .speaking { background-color: #d1fae5; }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
 
-  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
-    <h2 class="text-xl font-bold mb-4 text-center">🎙️ Buat / Gabung Room</h2>
-    <input id="roomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded" />
-    <input id="roomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded" />
-    <input id="username" type="text" placeholder="Nama Kamu" class="w-full mb-4 px-4 py-2 border rounded" />
+  <div class="w-full max-w-md bg-white shadow-md rounded p-4 mb-4">
+    <input id="roomId" class="w-full mb-2 p-2 border rounded" placeholder="Room ID" />
+    <input id="roomPw" type="password" class="w-full mb-2 p-2 border rounded" placeholder="Password" />
+    <input id="username" class="w-full mb-2 p-2 border rounded" placeholder="Nama Kamu" />
     <div class="flex gap-2">
-      <button id="createBtn" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buat</button>
-      <button id="joinBtn" class="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700">Gabung</button>
+      <button id="createBtn" class="flex-1 bg-blue-600 text-white p-2 rounded">Buat Room</button>
+      <button id="joinBtn" class="flex-1 bg-green-600 text-white p-2 rounded">Gabung Room</button>
     </div>
   </div>
 
-  <div id="participantContainer" class="hidden w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
-    <h2 class="text-xl font-bold mb-4 text-center">👥 Peserta</h2>
-    <ul id="roomList" class="text-gray-800 list-disc list-inside mb-4"></ul>
-    <div class="flex justify-between gap-2">
-      <button id="toggleMute" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">🔊 Mute</button>
-      <button id="leaveRoom" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">🚪 Keluar</button>
-      <button id="shareBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">🔗 Share WA</button>
+  <div id="participantContainer" class="hidden w-full max-w-md bg-white rounded shadow-md p-4">
+    <ul id="roomList" class="mb-4 space-y-1 text-gray-700"></ul>
+    <div class="flex justify-between">
+      <button id="toggleMute" class="bg-gray-800 text-white px-3 py-1 rounded">🔊 Mute</button>
+      <button id="leaveRoom" class="bg-red-500 text-white px-3 py-1 rounded">🚪 Keluar</button>
+      <button id="shareBtn" class="bg-green-600 text-white px-3 py-1 rounded">📤 Share</button>
     </div>
   </div>
 
-  <div id="youtubeControls" class="hidden w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
-    <h2 class="text-xl font-bold mb-4 text-center">📺 YouTube Bersama</h2>
-    <input id="youtubeUrl" type="text" placeholder="Link YouTube" class="w-full mb-3 px-4 py-2 border rounded" />
-    <div class="flex justify-between gap-2">
-      <button onclick="shareYouTubeLink()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">▶️ Putar</button>
-      <button onclick="pauseYoutubeAll()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">⏸️ Pause</button>
-      <button onclick="resumeYoutubeAll()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">⏯️ Lanjut</button>
-      <button onclick="stopYoutubeAll()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">⏹️ Stop</button>
+  <div id="ytContainer" class="hidden w-full max-w-md bg-white mt-4 rounded shadow-md p-4">
+    <input id="youtubeUrl" class="w-full mb-2 p-2 border rounded" placeholder="Tempel Link YouTube" />
+    <div id="youtubeControls" class="hidden flex gap-2 mb-2">
+      <button onclick="shareYouTubeLink()" class="flex-1 bg-blue-500 text-white p-2 rounded">Putar</button>
+      <button onclick="pauseYoutubeAll()" class="flex-1 bg-yellow-500 text-white p-2 rounded">Pause</button>
+      <button onclick="resumeYoutubeAll()" class="flex-1 bg-green-500 text-white p-2 rounded">Lanjutkan</button>
+      <button onclick="stopYoutubeAll()" class="flex-1 bg-red-600 text-white p-2 rounded">Stop</button>
     </div>
-  </div>
-
-  <div id="ytContainer" class="hidden w-full max-w-md mb-6">
-    <div id="ytPlayer" class="rounded overflow-hidden shadow-md"></div>
+    <div id="ytPlayer"></div>
   </div>
 
   <div id="audioContainer" class="hidden"></div>
@@ -66,47 +62,45 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    let myId = '', roomId = '', localStream, peers = {}, isMuted = false, player;
 
-    async function hashPassword(pw) {
-      const enc = new TextEncoder();
-      const buf = await crypto.subtle.digest("SHA-256", enc.encode(pw));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+    let myId = '', roomId = '', localStream, peers = {}, isMuted = false;
+    let player;
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = document.getElementById("roomId").value.trim();
       const password = document.getElementById("roomPw").value;
-      if (!roomId || !password) return alert("Isi form!");
+      if (!roomId || !password) return alert("Lengkapi form pembuatan room");
       const pwHash = await hashPassword(password);
       await set(ref(db, 'rooms/' + roomId), {
         password: pwHash,
         users: {},
         youtube: {}
       });
-      alert("Room dibuat");
+      alert("Room berhasil dibuat");
     };
 
     document.getElementById("joinBtn").onclick = async () => {
       roomId = document.getElementById("roomId").value.trim();
       const password = document.getElementById("roomPw").value;
       myId = document.getElementById("username").value.trim();
-      if (!roomId || !password || !myId) return alert("Isi lengkap!");
+      if (!roomId || !password || !myId) return alert("Lengkapi semua kolom");
       const snap = await get(child(ref(db), 'rooms/' + roomId));
-      if (!snap.exists()) return alert("Room tidak ada");
+      if (!snap.exists()) return alert("Room tidak ditemukan");
       const data = snap.val();
       const pwHash = await hashPassword(password);
       if (pwHash !== data.password) return alert("Password salah!");
-
       await set(ref(db, `rooms/${roomId}/users/${myId}`), { active: true });
-
       document.getElementById("participantContainer").classList.remove("hidden");
       document.getElementById("youtubeControls").classList.remove("hidden");
       document.getElementById("ytContainer").classList.remove("hidden");
 
       navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        console.log("✅ Mikrofon aktif");
         localStream = stream;
         setupVoice();
+      }).catch(err => {
+        console.error("❌ Gagal akses mic", err);
+        alert("Tidak bisa akses mikrofon: " + err.message);
       });
 
       onValue(ref(db, `rooms/${roomId}/users`), snap => {
@@ -115,7 +109,7 @@
         list.innerHTML = '';
         for (let u in users) {
           const li = document.createElement("li");
-          li.textContent = u;
+          li.textContent = `${u}`;
           li.id = `user-${u}`;
           list.appendChild(li);
         }
@@ -131,7 +125,9 @@
         if (val.action === 'stop') player.stopVideo();
       });
 
-      window.addEventListener('beforeunload', () => remove(ref(db, `rooms/${roomId}/users/${myId}`)));
+      window.addEventListener('beforeunload', () => {
+        remove(ref(db, `rooms/${roomId}/users/${myId}`));
+      });
     };
 
     document.getElementById("toggleMute").onclick = () => {
@@ -152,6 +148,12 @@
       const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
     };
+
+    async function hashPassword(pw) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest("SHA-256", enc.encode(pw));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     function setupVoice() {
       const ctx = new AudioContext();

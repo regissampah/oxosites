@@ -80,32 +80,24 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const firebaseConfig = { ... }; // pakai config kamu
+    const firebaseConfig = { /* ISI KONFIGURASI FIREBASE KAMU */ };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Referensi tombol
-    const showJoinBtn = document.getElementById('showJoinBtn');
-    const joinContainer = document.getElementById('joinContainer');
-    const participantContainer = document.getElementById('participantContainer');
-    const leaveRoomBtn = document.getElementById('leaveRoom');
-    const shareRoomBtn = document.getElementById('shareRoom');
+    let roomId = "";
 
-    // Tombol tampilkan form gabung
-    showJoinBtn.addEventListener('click', () => {
-      joinContainer.classList.remove('hidden');
-      showJoinBtn.classList.add('hidden');
+    document.getElementById('showJoinBtn').addEventListener('click', () => {
+      document.getElementById('joinContainer').classList.remove('hidden');
+      document.getElementById('showJoinBtn').classList.add('hidden');
     });
 
-    // Tombol keluar room
-    leaveRoomBtn.addEventListener('click', () => {
+    document.getElementById('leaveRoom').addEventListener('click', () => {
       location.reload();
     });
 
-    // Tombol share room (copy ke clipboard)
-    shareRoomBtn.addEventListener('click', () => {
+    document.getElementById('shareRoom').addEventListener('click', () => {
       const id = document.getElementById("joinRoomId").value || roomId;
       if (id) {
         navigator.clipboard.writeText(`Room ID: ${id}`);
@@ -113,30 +105,53 @@
       }
     });
 
-    // Tambahkan animasi volume bar saat bicara
-    function setupVoiceActivity() {
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      const micSource = audioContext.createMediaStreamSource(localStream);
-      micSource.connect(analyser);
+    // Logika gabung room
+    const joinForm = document.getElementById('joinForm');
+    joinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const roomInput = document.getElementById('joinRoomId').value;
+      const pwInput = document.getElementById('joinRoomPw').value;
+      const nameInput = document.getElementById('joinName').value;
 
-      const dataArray = new Uint8Array(analyser.fftSize);
-      function checkVolume() {
-        analyser.getByteFrequencyData(dataArray);
-        const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        const el = document.getElementById(`user-${myId}`);
-        if (el) {
-          el.classList.toggle('speaking', volume > 30);
-          if (!el.querySelector('.volume-bar') && volume > 30) {
-            const bar = document.createElement('div');
-            bar.className = 'volume-bar';
-            el.appendChild(bar);
-          }
+      if (!roomInput || !pwInput || !nameInput) return alert('Lengkapi semua kolom.');
+
+      roomId = roomInput;
+      const roomRef = ref(db, `rooms/${roomId}`);
+
+      try {
+        const snap = await get(roomRef);
+        if (!snap.exists()) {
+          alert('Room tidak ditemukan');
+          return;
         }
-        requestAnimationFrame(checkVolume);
+
+        const roomData = snap.val();
+        if (roomData.password !== pwInput) {
+          alert('Password salah');
+          return;
+        }
+
+        const userRef = ref(db, `rooms/${roomId}/participants/${nameInput}`);
+        await set(userRef, true);
+
+        document.getElementById('participantContainer').classList.remove('hidden');
+        document.getElementById('joinContainer').classList.add('hidden');
+
+        const listRef = ref(db, `rooms/${roomId}/participants`);
+        onValue(listRef, (snapshot) => {
+          const roomList = document.getElementById('roomList');
+          roomList.innerHTML = '';
+          snapshot.forEach((child) => {
+            const li = document.createElement('li');
+            li.textContent = child.key;
+            roomList.appendChild(li);
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        alert('Gagal gabung ke room.');
       }
-      checkVolume();
-    }
+    });
   </script>
 </body>
 </html>

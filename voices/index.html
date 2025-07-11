@@ -26,7 +26,7 @@
 
   <div id="participantContainer" class="hidden w-full max-w-md bg-white rounded shadow-md p-4">
     <ul id="roomList" class="mb-4 space-y-1 text-gray-700"></ul>
-    <div class="flex justify-between mb-2">
+    <div class="flex justify-between">
       <button id="toggleMute" class="bg-gray-800 text-white px-3 py-1 rounded">🔊 Mute</button>
       <button id="leaveRoom" class="bg-red-500 text-white px-3 py-1 rounded">🚪 Keluar</button>
       <button id="shareBtn" class="bg-green-600 text-white px-3 py-1 rounded">📤 Share</button>
@@ -41,74 +41,192 @@
       <button onclick="resumeYoutubeAll()" class="flex-1 bg-green-500 text-white p-2 rounded">Lanjutkan</button>
       <button onclick="stopYoutubeAll()" class="flex-1 bg-red-600 text-white p-2 rounded">Stop</button>
     </div>
-    <div class="flex items-center justify-between mb-2">
-      <label for="volumeSlider" class="text-sm">Volume</label>
-      <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-3/4">
-    </div>
     <div id="ytPlayer"></div>
   </div>
 
   <div id="audioContainer" class="hidden"></div>
 
-  <script>
-    let player;
-    let playerReady = false;
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    window.onYouTubeIframeAPIReady = () => {
-      player = new YT.Player('ytPlayer', {
-        height: '180',
-        width: '100%',
-        videoId: '',
-        playerVars: { 'autoplay': 0, 'controls': 1 },
-        events: {
-          'onReady': () => {
-            playerReady = true;
-            document.getElementById("volumeSlider").addEventListener("input", e => {
-              const volume = parseInt(e.target.value);
-              if (player && player.setVolume) {
-                player.setVolume(volume);
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
+      authDomain: "obrolin-bb0dd.firebaseapp.com",
+      databaseURL: "https://obrolin-bb0dd-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "obrolin-bb0dd",
+      storageBucket: "obrolin-bb0dd.appspot.com",
+      messagingSenderId: "1020330152162",
+      appId: "1:1020330152162:web:7f1745be7fcbe3de9c0ebb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let myId = '', roomId = '', localStream, peers = {}, isMuted = false;
+    let player, playerReady = false;
+
+    document.getElementById("createBtn").onclick = async () => {
+      roomId = document.getElementById("roomId").value.trim();
+      const password = document.getElementById("roomPw").value;
+      if (!roomId || !password) return alert("Lengkapi form pembuatan room");
+      const pwHash = await hashPassword(password);
+      await set(ref(db, 'rooms/' + roomId), {
+        password: pwHash,
+        users: {},
+        youtube: {}
+      });
+      alert("Room berhasil dibuat");
+    };
+
+    document.getElementById("joinBtn").onclick = async () => {
+      roomId = document.getElementById("roomId").value.trim();
+      const password = document.getElementById("roomPw").value;
+      myId = document.getElementById("username").value.trim();
+      if (!roomId || !password || !myId) return alert("Lengkapi semua kolom");
+      const snap = await get(child(ref(db), 'rooms/' + roomId));
+      if (!snap.exists()) return alert("Room tidak ditemukan");
+      const data = snap.val();
+      const pwHash = await hashPassword(password);
+      if (pwHash !== data.password) return alert("Password salah!");
+      await set(ref(db, `rooms/${roomId}/users/${myId}`), { active: true });
+      document.getElementById("participantContainer").classList.remove("hidden");
+      document.getElementById("youtubeControls").classList.remove("hidden");
+      document.getElementById("ytContainer").classList.remove("hidden");
+
+      window.addEventListener('beforeunload', () => {
+        remove(ref(db, `rooms/${roomId}/users/${myId}`));
+      });
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        localStream = stream;
+        setupVoice();
+        connectToPeers();
+      });
+
+      onValue(ref(db, `rooms/${roomId}/users`), snap => {
+        const users = snap.val() || {};
+        const list = document.getElementById("roomList");
+        list.innerHTML = '';
+        for (let u in users) {
+          const li = document.createElement("li");
+          li.textContent = `${u}`;
+          li.id = `user-${u}`;
+          list.appendChild(li);
+        }
+        if (Object.keys(users).length === 0) remove(ref(db, `rooms/${roomId}`));
+      });
+
+      onValue(ref(db, `rooms/${roomId}/youtube`), snap => {
+        const val = snap.val();
+        if (!val) return;
+        checkPlayerReady(() => {
+          console.log("YouTube Sync Received:", val);
+          if (val.action === 'play') player.loadVideoById(val.videoId);
+          if (val.action === 'pause') player.pauseVideo();
+          if (val.action === 'resume') player.playVideo();
+          if (val.action === 'stop') player.stopVideo();
+        });
+      });
+    };
+
+    function checkPlayerReady(callback) {
+      if (playerReady && typeof player.loadVideoById === "function") {
+        callback();
+      } else {
+        setTimeout(() => checkPlayerReady(callback), 200);
+      }
+    }
+
+    function connectToPeers() {
+      onValue(ref(db, `rooms/${roomId}/users`), snap => {
+        const users = snap.val() || {};
+        for (let user in users) {
+          if (user !== myId && !peers[user]) {
+            const peer = new SimplePeer({ initiator: myId < user, trickle: false, stream: localStream });
+            peers[user] = peer;
+
+            peer.on('signal', data => {
+              set(ref(db, `rooms/${roomId}/signals/${myId}_to_${user}`), JSON.stringify(data));
+            });
+
+            onValue(ref(db, `rooms/${roomId}/signals/${user}_to_${myId}`), snap => {
+              if (snap.exists()) {
+                peer.signal(JSON.parse(snap.val()));
               }
+            });
+
+            peer.on('stream', stream => {
+              const audio = document.createElement('audio');
+              audio.srcObject = stream;
+              audio.autoplay = true;
+              document.body.appendChild(audio);
             });
           }
         }
       });
+    }
+
+    document.getElementById("toggleMute").onclick = () => {
+      if (localStream) {
+        const track = localStream.getAudioTracks()[0];
+        track.enabled = !track.enabled;
+        document.getElementById("toggleMute").textContent = track.enabled ? "🔊 Mute" : "🔇 Unmute";
+      }
     };
 
-    function shareYouTubeLink() {
-      const url = document.getElementById("youtubeUrl").value.trim();
-      const videoId = extractVideoId(url);
-      if (playerReady && videoId) {
-        player.loadVideoById(videoId);
-        document.getElementById("youtubeControls").classList.remove("hidden");
-      } else {
-        alert("Link tidak valid atau player belum siap");
-      }
+    document.getElementById("leaveRoom").onclick = () => {
+      if (myId && roomId) remove(ref(db, `rooms/${roomId}/users/${myId}`));
+      location.reload();
+    };
+
+    document.getElementById("shareBtn").onclick = () => {
+      const text = `Gabung Obrolin: https://obrolin.app?room=${roomId}`;
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    };
+
+    async function hashPassword(pw) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest("SHA-256", enc.encode(pw));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function extractVideoId(url) {
-      try {
-        const urlObj = new URL(url);
-        if (urlObj.hostname.includes("youtu.be")) {
-          return urlObj.pathname.slice(1);
-        } else if (urlObj.hostname.includes("youtube.com")) {
-          return urlObj.searchParams.get("v");
+    function setupVoice() {
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      const source = ctx.createMediaStreamSource(localStream);
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+      function detect() {
+        analyser.getByteFrequencyData(data);
+        const volume = data.reduce((a, b) => a + b) / data.length;
+        const el = document.getElementById(`user-${myId}`);
+        if (el) el.classList.toggle("speaking", volume > 30);
+        requestAnimationFrame(detect);
+      }
+      detect();
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      player = new YT.Player('ytPlayer', {
+        height: '180', width: '100%', videoId: '',
+        playerVars: { 'autoplay': 0, 'controls': 1 },
+        events: {
+          'onReady': () => { playerReady = true; console.log("YouTube Player is ready"); }
         }
-      } catch {
-        return null;
-      }
-    }
+      });
+    };
 
-    function pauseYoutubeAll() {
-      if (playerReady) player.pauseVideo();
-    }
-
-    function resumeYoutubeAll() {
-      if (playerReady) player.playVideo();
-    }
-
-    function stopYoutubeAll() {
-      if (playerReady) player.stopVideo();
-    }
+    window.shareYouTubeLink = () => {
+      const url = document.getElementById("youtubeUrl").value.trim();
+      const videoId = url.includes('youtu.be') ? url.split('/').pop().split('?')[0] : url.split("v=")[1]?.split("&")[0];
+      if (!videoId) return alert("URL tidak valid");
+      update(ref(db, `rooms/${roomId}/youtube`), { videoId, action: 'play' });
+    };
+    window.pauseYoutubeAll = () => update(ref(db, `rooms/${roomId}/youtube`), { action: 'pause' });
+    window.resumeYoutubeAll = () => update(ref(db, `rooms/${roomId}/youtube`), { action: 'resume' });
+    window.stopYoutubeAll = () => update(ref(db, `rooms/${roomId}/youtube`), { action: 'stop' });
   </script>
 </body>
 </html>

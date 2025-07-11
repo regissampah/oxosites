@@ -2,78 +2,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Realtime Voice Chat (PeerJS)</title>
-  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    input, button { margin: 0.5rem 0; padding: 0.5rem; width: 100%; }
-    .section { margin-bottom: 1.5rem; }
-  </style>
-</head>
-<body>
-  <h2>🎙️ Realtime Voice Chat</h2>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Voice Chat Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <div class="section">
-    <label>ID Kamu:</label>
-    <input type="text" id="my-id" placeholder="Misal: user123">
-    <button onclick="connectToPeer()">Aktifkan ID</button>
-    <p><strong>ID aktif:</strong> <span id="current-id">(belum aktif)</span></p>
-  </div>
+    const firebaseConfig = {
+  apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
+  authDomain: "obrolin-bb0dd.firebaseapp.com",
+  projectId: "obrolin-bb0dd",
+  storageBucket: "obrolin-bb0dd.firebasestorage.app",
+  messagingSenderId: "1020330152162",
+  appId: "1:1020330152162:web:f821dafd1472002b9c0ebb"
+    };
 
-  <div class="section">
-    <label>ID Teman untuk Call:</label>
-    <input type="text" id="remote-id" placeholder="Misal: user456">
-    <button onclick="callPeer()">🔊 Start Call</button>
-    <button onclick="endCall()">📴 End Call</button>
-  </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  <audio id="remoteAudio" autoplay></audio>
+    const roomForm = document.getElementById('roomForm');
+    const joinForm = document.getElementById('joinForm');
+    const roomList = document.getElementById('roomList');
+    const audioContainer = document.getElementById('audioContainer');
 
-  <script>
-    let peer = null;
-    let currentCall = null;
+    let localStream;
+    let myId = '';
+    let peers = {};
 
-    function connectToPeer() {
-      const id = document.getElementById("my-id").value;
-      if (!id) return alert("Masukkan ID kamu dulu");
-
-      peer = new Peer(id);
-      peer.on("open", function (id) {
-        document.getElementById("current-id").textContent = id;
-        console.log("Peer aktif dengan ID:", id);
-      });
-
-      peer.on("call", function (call) {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-          call.answer(stream);
-          call.on("stream", function (remoteStream) {
-            document.getElementById("remoteAudio").srcObject = remoteStream;
-          });
-          currentCall = call;
-        });
-      });
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function callPeer() {
-      const remoteId = document.getElementById("remote-id").value;
-      if (!remoteId || !peer) return alert("Pastikan ID aktif dan ID teman diisi");
-
-      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        const call = peer.call(remoteId, stream);
-        call.on("stream", function (remoteStream) {
-          document.getElementById("remoteAudio").srcObject = remoteStream;
-        });
-        currentCall = call;
+    roomForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const roomId = document.getElementById("createRoomId").value.trim();
+      const password = document.getElementById("createRoomPw").value;
+      if (!roomId || !password) return alert("Lengkapi form pembuatan room");
+      const pwHash = await hashPassword(password);
+      await set(ref(db, 'rooms/' + roomId), {
+        password: pwHash,
+        users: {}
       });
-    }
+      alert("Room berhasil dibuat. Bagikan ID ke teman!");
+    };
 
-    function endCall() {
-      if (currentCall) {
-        currentCall.close();
-        currentCall = null;
-        document.getElementById("remoteAudio").srcObject = null;
-      }
-    }
+    joinForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const roomId = document.getElementById("joinRoomId").value.trim();
+      const password = document.getElementById("joinRoomPw").value;
+      const username = document.getElementById("joinName").value.trim();
+      if (!roomId || !password || !username) return alert("Lengkapi semua kolom");
+
+      const snapshot = await get(child(ref(db), 'rooms/' + roomId));
+      if (!snapshot.exists()) return alert("Room tidak ditemukan");
+      const data = snapshot.val();
+      const pwHash = await hashPassword(password);
+
+      if (pwHash !== data.password) return alert("Password salah!");
+
+      myId = username;
+      const userRef = ref(db, `rooms/${roomId}/users/${username}`);
+      await set(userRef, { active: true });
+
+      onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
+        roomList.innerHTML = '';
+        const users = snap.val();
+        for (let user in users) {
+          const li = document.createElement('li');
+          li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
+          roomList.appendChild(li);
+        }
+
+        if (!localStream) {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+
+        for (let user in users) {
+          if (user !== myId && !peers[user]) {
+            const peer = new SimplePeer({ initiator: myId < user, trickle: false, stream: localStream });
+            peers[user] = peer;
+
+            peer.on('signal', data => {
+              set(ref(db, `rooms/${roomId}/signals/${myId}_to_${user}`), JSON.stringify(data));
+            });
+
+            onValue(ref(db, `rooms/${roomId}/signals/${user}_to_${myId}`), snap => {
+              if (snap.exists()) {
+                const signal = JSON.parse(snap.val());
+                peer.signal(signal);
+              }
+            });
+
+            peer.on('stream', stream => {
+              const audio = document.createElement('audio');
+              audio.srcObject = stream;
+              audio.autoplay = true;
+              audioContainer.appendChild(audio);
+            });
+          }
+        }
+      });
+
+      alert(`Berhasil masuk room ${roomId} sebagai ${username}`);
+    };
   </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
+    <h2 class="text-xl font-bold mb-4 text-center">🔐 Buat Room</h2>
+    <form id="roomForm">
+      <input id="createRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="createRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buat Room</button>
+    </form>
+  </div>
+
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
+    <h2 class="text-xl font-bold mb-4 text-center">🔑 Gabung Room</h2>
+    <form id="joinForm">
+      <input id="joinRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="joinRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="joinName" type="text" placeholder="Nama Kamu" class="w-full mb-2 px-4 py-2 border rounded">
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Gabung Room</button>
+    </form>
+  </div>
+
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-2 text-center">👥 Daftar Peserta</h2>
+    <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
+  </div>
+
+  <div id="audioContainer" class="hidden"></div>
 </body>
 </html>

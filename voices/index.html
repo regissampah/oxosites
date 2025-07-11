@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Group Voice Chat Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, get, child, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
   apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
@@ -18,7 +18,7 @@
   storageBucket: "obrolin-bb0dd.firebasestorage.app",
   messagingSenderId: "1020330152162",
   appId: "1:1020330152162:web:f821dafd1472002b9c0ebb"
-    };
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -31,6 +31,7 @@
     let localStream;
     let myId = '';
     let peers = {};
+    let roomId = '';
 
     async function hashPassword(password) {
       const encoder = new TextEncoder();
@@ -41,7 +42,7 @@
 
     roomForm.onsubmit = async (e) => {
       e.preventDefault();
-      const roomId = document.getElementById("createRoomId").value.trim();
+      roomId = document.getElementById("createRoomId").value.trim();
       const password = document.getElementById("createRoomPw").value;
       if (!roomId || !password) return alert("Lengkapi form pembuatan room");
       const pwHash = await hashPassword(password);
@@ -54,7 +55,7 @@
 
     joinForm.onsubmit = async (e) => {
       e.preventDefault();
-      const roomId = document.getElementById("joinRoomId").value.trim();
+      roomId = document.getElementById("joinRoomId").value.trim();
       const password = document.getElementById("joinRoomPw").value;
       const username = document.getElementById("joinName").value.trim();
       if (!roomId || !password || !username) return alert("Lengkapi semua kolom");
@@ -70,13 +71,25 @@
       const userRef = ref(db, `rooms/${roomId}/users/${username}`);
       await set(userRef, { active: true });
 
+      // Tandai offline saat tab ditutup
+      window.addEventListener('beforeunload', () => {
+        set(userRef, { active: false });
+      });
+
       onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
-        roomList.innerHTML = '';
         const users = snap.val();
+        roomList.innerHTML = '';
         for (let user in users) {
           const li = document.createElement('li');
           li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
           roomList.appendChild(li);
+        }
+
+        const isEmpty = Object.values(users).every(u => !u.active);
+        if (isEmpty) {
+          await remove(ref(db, `rooms/${roomId}`)); // hapus room
+          alert('Semua user keluar. Room dihapus otomatis.');
+          location.reload();
         }
 
         if (!localStream) {

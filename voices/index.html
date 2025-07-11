@@ -1,4 +1,3 @@
-<!-- Kode HTML diupdate dengan fitur mute/unmute dan voice activity detection -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +14,7 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <!-- Buat Room -->
   <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
     <h2 class="text-xl font-bold mb-4 text-center">🔐 Buat Room</h2>
     <form id="roomForm">
@@ -24,6 +24,7 @@
     </form>
   </div>
 
+  <!-- Gabung Room -->
   <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
     <h2 class="text-xl font-bold mb-4 text-center">🔑 Gabung Room</h2>
     <form id="joinForm">
@@ -34,6 +35,7 @@
     </form>
   </div>
 
+  <!-- Peserta -->
   <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
     <h2 class="text-xl font-bold mb-2 text-center">👥 Daftar Peserta</h2>
     <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
@@ -50,14 +52,15 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
- const firebaseConfig = {
-  apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
-  authDomain: "obrolin-bb0dd.firebaseapp.com",
-  projectId: "obrolin-bb0dd",
-  storageBucket: "obrolin-bb0dd.firebasestorage.app",
-  messagingSenderId: "1020330152162",
-  appId: "1:1020330152162:web:f821dafd1472002b9c0ebb"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
+      authDomain: "obrolin-bb0dd.firebaseapp.com",
+      databaseURL: "https://obrolin-bb0dd-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "obrolin-bb0dd",
+      storageBucket: "obrolin-bb0dd.appspot.com",
+      messagingSenderId: "1020330152162",
+      appId: "1:1020330152162:web:7f1745be7fcbe3de9c0ebb"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -83,15 +86,20 @@
 
     roomForm.onsubmit = async (e) => {
       e.preventDefault();
-      roomId = document.getElementById("createRoomId").value.trim();
-      const password = document.getElementById("createRoomPw").value;
-      if (!roomId || !password) return alert("Lengkapi form pembuatan room");
-      const pwHash = await hashPassword(password);
-      await set(ref(db, 'rooms/' + roomId), {
-        password: pwHash,
-        users: {}
-      });
-      alert("Room berhasil dibuat. Bagikan ID ke teman!");
+      try {
+        roomId = document.getElementById("createRoomId").value.trim();
+        const password = document.getElementById("createRoomPw").value;
+        if (!roomId || !password) return alert("Lengkapi form pembuatan room");
+        const pwHash = await hashPassword(password);
+        await set(ref(db, 'rooms/' + roomId), {
+          password: pwHash,
+          users: {}
+        });
+        alert("Room berhasil dibuat. Bagikan ID ke teman!");
+      } catch (err) {
+        alert("❌ Gagal buat room. Cek koneksi atau config Firebase.");
+        console.error(err);
+      }
     };
 
     joinForm.onsubmit = async (e) => {
@@ -105,7 +113,6 @@
       if (!snapshot.exists()) return alert("Room tidak ditemukan");
       const data = snapshot.val();
       const pwHash = await hashPassword(password);
-
       if (pwHash !== data.password) return alert("Password salah!");
 
       myId = username;

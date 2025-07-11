@@ -63,7 +63,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let myId = '', roomId = '', localStream, isMuted = false, player;
+    let myId = '', roomId = '', localStream, peers = {}, isMuted = false;
+    let player;
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = document.getElementById("roomId").value.trim();
@@ -88,17 +89,20 @@
       const data = snap.val();
       const pwHash = await hashPassword(password);
       if (pwHash !== data.password) return alert("Password salah!");
-
       await set(ref(db, `rooms/${roomId}/users/${myId}`), { active: true });
-
       document.getElementById("participantContainer").classList.remove("hidden");
       document.getElementById("youtubeControls").classList.remove("hidden");
       document.getElementById("ytContainer").classList.remove("hidden");
 
+      window.addEventListener('beforeunload', () => {
+        remove(ref(db, `rooms/${roomId}/users/${myId}`));
+      });
+
       navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         localStream = stream;
         setupVoice();
-      }).catch(err => alert("Tidak bisa akses mikrofon"));
+        connectToPeers();
+      });
 
       onValue(ref(db, `rooms/${roomId}/users`), snap => {
         const users = snap.val() || {};
@@ -121,11 +125,36 @@
         if (val.action === 'resume') player.playVideo();
         if (val.action === 'stop') player.stopVideo();
       });
-
-      window.addEventListener('beforeunload', () => {
-        remove(ref(db, `rooms/${roomId}/users/${myId}`));
-      });
     };
+
+    function connectToPeers() {
+      onValue(ref(db, `rooms/${roomId}/users`), snap => {
+        const users = snap.val() || {};
+        for (let user in users) {
+          if (user !== myId && !peers[user]) {
+            const peer = new SimplePeer({ initiator: myId < user, trickle: false, stream: localStream });
+            peers[user] = peer;
+
+            peer.on('signal', data => {
+              set(ref(db, `rooms/${roomId}/signals/${myId}_to_${user}`), JSON.stringify(data));
+            });
+
+            onValue(ref(db, `rooms/${roomId}/signals/${user}_to_${myId}`), snap => {
+              if (snap.exists()) {
+                peer.signal(JSON.parse(snap.val()));
+              }
+            });
+
+            peer.on('stream', stream => {
+              const audio = document.createElement('audio');
+              audio.srcObject = stream;
+              audio.autoplay = true;
+              document.body.appendChild(audio);
+            });
+          }
+        }
+      });
+    }
 
     document.getElementById("toggleMute").onclick = () => {
       if (localStream) {

@@ -42,16 +42,21 @@
     <iframe id="ytPlayer" width="100%" height="180" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </div>
 
-  <!-- User List -->
-  <div id="userListContainer" class="w-full max-w-md bg-white rounded-xl shadow p-4 mb-4 hidden">
-    <h2 class="font-bold mb-2">👥 Peserta:</h2>
-    <ul id="userList" class="list-disc list-inside text-gray-700"></ul>
+  <!-- Participant List and Mute Button -->
+  <div id="participantContainer" class="hidden w-full max-w-md bg-white rounded-xl shadow p-4">
+    <h2 class="text-lg font-bold mb-2">👥 Daftar Peserta</h2>
+    <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
+    <div class="mt-4 flex gap-2 justify-center">
+      <button id="toggleMute" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">🔊 Mute</button>
+    </div>
   </div>
+
+  <div id="audioContainer" class="hidden"></div>
 
   <!-- Firebase + Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, get, child, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAzq4qMkrH5oNztgt0C4ltypHD5b2lHMGM",
@@ -72,10 +77,15 @@
     const ytPlayer = document.getElementById("ytPlayer");
     const ytContainer = document.getElementById("ytContainer");
     const youtubeControls = document.getElementById("youtubeControls");
-    const userListContainer = document.getElementById("userListContainer");
-    const userList = document.getElementById("userList");
+    const roomList = document.getElementById("roomList");
+    const toggleMute = document.getElementById("toggleMute");
+    const participantContainer = document.getElementById("participantContainer");
 
     let roomId = "";
+    let myId = "";
+    let localStream;
+    let peers = {};
+    let isMuted = false;
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = roomIdInput.value.trim();
@@ -84,7 +94,8 @@
       const pwHash = await hashPassword(password);
       await set(ref(db, `rooms/${roomId}`), {
         password: pwHash,
-        yt: { video: '', paused: false }
+        yt: { video: '', paused: false },
+        users: {}
       });
       alert("Room berhasil dibuat. Sekarang gabung sebagai user.");
     };
@@ -104,41 +115,54 @@
         return alert("Room belum dibuat. Silakan buat dulu.");
       }
 
-      const userRef = ref(db, `rooms/${roomId}/users/${username}`);
-      await set(userRef, { active: true });
-      onDisconnect(userRef).remove();
-
+      myId = username;
       document.getElementById("authUI").classList.add("hidden");
       youtubeControls.classList.remove("hidden");
       ytContainer.classList.remove("hidden");
+      participantContainer.classList.remove("hidden");
 
-      onValue(ref(db, `rooms/${roomId}/users`), (snap) => {
+      const userRef = ref(db, `rooms/${roomId}/users/${username}`);
+      await set(userRef, { active: true });
+
+      onValue(ref(db, `rooms/${roomId}/users`), snap => {
         const users = snap.val();
-        userList.innerHTML = '';
-        if (users) {
-          Object.keys(users).forEach((user) => {
-            const li = document.createElement('li');
-            li.textContent = `${user}`;
-            userList.appendChild(li);
-          });
-          userListContainer.classList.remove("hidden");
+        roomList.innerHTML = '';
+        for (let user in users) {
+          const li = document.createElement('li');
+          li.textContent = `${user} (${users[user].active ? 'aktif' : 'offline'})`;
+          li.id = `user-${user}`;
+          roomList.appendChild(li);
         }
       });
 
-      onValue(ref(db, `rooms/${roomId}/yt`), (snap) => {
-        const ytData = snap.val();
-        if (!ytData) return;
-        const videoId = ytData.video;
-        const paused = ytData.paused;
-        if (videoId) {
-          ytPlayer.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-          setTimeout(() => {
-            const cmd = paused ? 'pauseVideo' : 'playVideo';
-            ytPlayer.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
-          }, 1000);
-        }
-      });
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setupVoiceActivity();
     };
+
+    function setupVoiceActivity() {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const micSource = audioContext.createMediaStreamSource(localStream);
+      micSource.connect(analyser);
+      const dataArray = new Uint8Array(analyser.fftSize);
+
+      function checkVolume() {
+        analyser.getByteFrequencyData(dataArray);
+        const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const el = document.getElementById(`user-${myId}`);
+        if (el) el.classList.toggle('speaking', volume > 30);
+        requestAnimationFrame(checkVolume);
+      }
+      checkVolume();
+    }
+
+    toggleMute.addEventListener("click", () => {
+      if (localStream) {
+        localStream.getAudioTracks()[0].enabled = isMuted;
+        isMuted = !isMuted;
+        toggleMute.textContent = isMuted ? '🔇 Unmute' : '🔊 Mute';
+      }
+    });
 
     async function hashPassword(password) {
       const encoder = new TextEncoder();

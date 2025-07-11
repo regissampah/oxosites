@@ -4,10 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Group Voice Chat Room</title>
+
+  <!-- ✅ TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- ✅ Bebas CORS: Font Awesome via CDNJS -->
+
+  <!-- ✅ Font Awesome (bebas CORS) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-LWcC4N+8XKibuy3PbH4+EeUzQRLjkOlZD0eKSBixn4v9X8Nj3OyAmIVUXr2Jt+v/ujMvXm8vKJUBOuvm0tAa0A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- ✅ WebRTC -->
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+
   <style>
     .speaking {
       background-color: #d1fae5;
@@ -15,19 +21,25 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
   <!-- Buat Room -->
-  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4">
     <h2 class="text-xl font-bold mb-4 text-center">🔐 Buat Room</h2>
     <form id="roomForm">
       <input id="createRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
-      <input id="createRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
+      <input id="createRoomPw" type="password" placeholder="Password" class="w-full mb-4 px-4 py-2 border rounded">
       <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buat Room</button>
     </form>
+
+    <!-- Tombol untuk tampilkan Form Gabung -->
+    <button id="showJoinBtn" class="mt-4 w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600">
+      🔑 Gabung Room
+    </button>
   </div>
 
-  <!-- Gabung Room -->
-  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-8">
-    <h2 class="text-xl font-bold mb-4 text-center">🔑 Gabung Room</h2>
+  <!-- Gabung Room (disembunyikan dulu) -->
+  <div id="joinContainer" class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mb-4 hidden">
+    <h2 class="text-xl font-bold mb-4 text-center">🟢 Gabung Room</h2>
     <form id="joinForm">
       <input id="joinRoomId" type="text" placeholder="Room ID" class="w-full mb-2 px-4 py-2 border rounded">
       <input id="joinRoomPw" type="password" placeholder="Password" class="w-full mb-2 px-4 py-2 border rounded">
@@ -36,8 +48,8 @@
     </form>
   </div>
 
-  <!-- Peserta -->
-  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
+  <!-- Daftar Peserta (disembunyikan dulu) -->
+  <div id="participantContainer" class="hidden w-full max-w-md bg-white shadow-lg rounded-xl p-6">
     <h2 class="text-xl font-bold mb-2 text-center">👥 Daftar Peserta</h2>
     <ul id="roomList" class="list-disc list-inside text-gray-700"></ul>
     <div class="mt-4 text-center">
@@ -69,14 +81,21 @@
     const roomForm = document.getElementById('roomForm');
     const joinForm = document.getElementById('joinForm');
     const roomList = document.getElementById('roomList');
-    const audioContainer = document.getElementById('audioContainer');
     const toggleMute = document.getElementById('toggleMute');
+    const joinContainer = document.getElementById('joinContainer');
+    const participantContainer = document.getElementById('participantContainer');
+    const showJoinBtn = document.getElementById('showJoinBtn');
 
     let localStream;
     let myId = '';
     let roomId = '';
     let peers = {};
     let isMuted = false;
+
+    showJoinBtn.addEventListener('click', () => {
+      joinContainer.classList.remove('hidden');
+      showJoinBtn.classList.add('hidden');
+    });
 
     async function hashPassword(password) {
       const encoder = new TextEncoder();
@@ -87,20 +106,15 @@
 
     roomForm.onsubmit = async (e) => {
       e.preventDefault();
-      try {
-        roomId = document.getElementById("createRoomId").value.trim();
-        const password = document.getElementById("createRoomPw").value;
-        if (!roomId || !password) return alert("Lengkapi form pembuatan room");
-        const pwHash = await hashPassword(password);
-        await set(ref(db, 'rooms/' + roomId), {
-          password: pwHash,
-          users: {}
-        });
-        alert("Room berhasil dibuat. Bagikan ID ke teman!");
-      } catch (err) {
-        alert("❌ Gagal buat room. Cek koneksi atau config Firebase.");
-        console.error(err);
-      }
+      roomId = document.getElementById("createRoomId").value.trim();
+      const password = document.getElementById("createRoomPw").value;
+      if (!roomId || !password) return alert("Lengkapi form pembuatan room");
+      const pwHash = await hashPassword(password);
+      await set(ref(db, 'rooms/' + roomId), {
+        password: pwHash,
+        users: {}
+      });
+      alert("Room berhasil dibuat. Bagikan ID ke teman!");
     };
 
     joinForm.onsubmit = async (e) => {
@@ -121,6 +135,7 @@
       await set(userRef, { active: true });
 
       window.addEventListener('beforeunload', () => set(userRef, { active: false }));
+      participantContainer.classList.remove('hidden');
 
       onValue(ref(db, `rooms/${roomId}/users`), async (snap) => {
         const users = snap.val();
@@ -164,7 +179,7 @@
               const audio = document.createElement('audio');
               audio.srcObject = stream;
               audio.autoplay = true;
-              audioContainer.appendChild(audio);
+              document.body.appendChild(audio);
             });
           }
         }

@@ -33,9 +33,11 @@
   </div>
 
   <div id="ytContainer" class="hidden w-full max-w-md bg-white mt-4 rounded shadow-md p-4">
-    <input id="youtubeUrl" class="w-full mb-2 p-2 border rounded" placeholder="Tempel Link YouTube" />
+    <div class="flex mb-2 gap-2">
+      <input id="youtubeUrl" class="flex-1 p-2 border rounded" placeholder="Tempel Link YouTube" />
+      <button id="putarBtn" class="px-3 bg-blue-600 text-white rounded">+</button>
+    </div>
     <div class="flex gap-2 mb-2">
-      <button id="putarBtn" class="flex-1 bg-blue-500 text-white p-2 rounded">Putar</button>
       <button onclick="pauseYoutubeAll()" class="flex-1 bg-yellow-500 text-white p-2 rounded">Pause</button>
       <button onclick="resumeYoutubeAll()" class="flex-1 bg-green-500 text-white p-2 rounded">Lanjutkan</button>
       <button onclick="stopYoutubeAll()" class="flex-1 bg-red-600 text-white p-2 rounded">Stop</button>
@@ -63,6 +65,11 @@
     const db = getDatabase(app);
 
     let myId = '', roomId = '', localStream, peers = {}, isMuted = false;
+    let ytReady = false;
+
+    window.addEventListener("message", event => {
+      if (event.data && event.data.event === "onReady") ytReady = true;
+    });
 
     document.getElementById("createBtn").onclick = async () => {
       roomId = document.getElementById("roomId").value.trim();
@@ -212,16 +219,22 @@
     }
 
     function pauseYoutubeAll() {
-      const frame = document.getElementById("ytFrame").contentWindow;
-      frame.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      if (ytReady) {
+        const frame = document.getElementById("ytFrame").contentWindow;
+        frame.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      }
     }
     function resumeYoutubeAll() {
-      const frame = document.getElementById("ytFrame").contentWindow;
-      frame.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      if (ytReady) {
+        const frame = document.getElementById("ytFrame").contentWindow;
+        frame.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }
     }
     function stopYoutubeAll() {
-      const frame = document.getElementById("ytFrame").contentWindow;
-      frame.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
+      if (ytReady) {
+        const frame = document.getElementById("ytFrame").contentWindow;
+        frame.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
+      }
     }
   </script>
 </body>

@@ -35,11 +35,11 @@
   <div id="ytContainer" class="hidden w-full max-w-md bg-white mt-4 rounded shadow-md p-4">
     <div class="flex mb-2 gap-2">
       <input id="youtubeUrl" class="flex-1 p-2 border rounded" placeholder="Tempel Link YouTube" />
-      <button id="putarBtn" class="px-3 bg-blue-600 text-white rounded">+</button>
+      <button id="putarBtn" class="px-3 bg-blue-600 text-white rounded">Tambahkan</button>
     </div>
     <div class="flex gap-2 mb-2">
+      <button onclick="resumeYoutubeAll()" class="flex-1 bg-blue-500 text-white p-2 rounded">Mainkan</button>
       <button onclick="pauseYoutubeAll()" class="flex-1 bg-yellow-500 text-white p-2 rounded">Pause</button>
-      <button onclick="resumeYoutubeAll()" class="flex-1 bg-green-500 text-white p-2 rounded">Lanjutkan</button>
       <button onclick="stopYoutubeAll()" class="flex-1 bg-red-600 text-white p-2 rounded">Stop</button>
     </div>
     <iframe id="ytFrame" class="w-full h-48" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>

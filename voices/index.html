@@ -219,22 +219,16 @@
     }
 
     function pauseYoutubeAll() {
-      if (ytReady) {
-        const frame = document.getElementById("ytFrame").contentWindow;
-        frame.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-      }
+      const frame = document.getElementById("ytFrame").contentWindow;
+      frame.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
     }
     function resumeYoutubeAll() {
-      if (ytReady) {
-        const frame = document.getElementById("ytFrame").contentWindow;
-        frame.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-      }
+      const frame = document.getElementById("ytFrame").contentWindow;
+      frame.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
     }
     function stopYoutubeAll() {
-      if (ytReady) {
-        const frame = document.getElementById("ytFrame").contentWindow;
-        frame.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
-      }
+      const frame = document.getElementById("ytFrame").contentWindow;
+      frame.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
     }
 
     window.resumeYoutubeAll = resumeYoutubeAll;

@@ -113,6 +113,14 @@
         }
         if (Object.keys(users).length === 0) remove(ref(db, `rooms/${roomId}`));
       });
+
+      onValue(ref(db, `rooms/${roomId}/youtube/url`), snap => {
+        const videoId = snap.val();
+        if (videoId) {
+          const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${location.origin}`;
+          document.getElementById("ytFrame").src = embedUrl;
+        }
+      });
     };
 
     function connectToPeers() {
@@ -184,8 +192,7 @@
       const url = document.getElementById("youtubeUrl").value.trim();
       const videoId = extractVideoId(url);
       if (videoId) {
-        const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${location.origin}`;
-        document.getElementById("ytFrame").src = embedUrl;
+        update(ref(db, `rooms/${roomId}/youtube`), { url: videoId });
       } else {
         alert("Link tidak valid");
       }

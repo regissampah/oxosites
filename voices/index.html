@@ -42,7 +42,7 @@
       <button onclick="pauseYoutubeAll()" class="flex-1 bg-yellow-500 text-white p-2 rounded">Pause</button>
       <button onclick="stopYoutubeAll()" class="flex-1 bg-red-600 text-white p-2 rounded">Stop</button>
     </div>
-    <iframe id="ytFrame" class="w-full h-48" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <iframe id="ytFrame" class="w-full h-48" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen onload="ytReady = true"></iframe>
   </div>
 
   <div id="audioContainer"></div>
@@ -64,7 +64,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let myId = '', roomId = '', localStream, peers = {};
+    let myId = '', roomId = '', localStream, peers = {}, ytReady = false;
 
     document.getElementById("putarBtn").onclick = () => {
       const url = document.getElementById("youtubeUrl").value.trim();
@@ -205,14 +205,20 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    function controlYT(cmd) {
+      const frame = document.getElementById("ytFrame").contentWindow;
+      if (!ytReady) {
+        setTimeout(() => controlYT(cmd), 300);
+        return;
+      }
+      frame.postMessage(JSON.stringify({ event: "command", func: cmd, args: [] }), "*");
+    }
+
     onValue(ref(db, 'rooms'), snap => {
       const roomData = snap.val();
       if (roomData && roomData[roomId] && roomData[roomId].youtube) {
         const yt = roomData[roomId].youtube;
-        const frame = document.getElementById("ytFrame").contentWindow;
-        if (yt.command === "play") frame.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        else if (yt.command === "pause") frame.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-        else if (yt.command === "stop") frame.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
+        if (yt.command) controlYT(yt.command);
       }
     });
   </script>

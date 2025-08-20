@@ -14,7 +14,7 @@
   <style>
     body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
 
-    /* Custom message box */
+    /* Message box (simple alert) */
     .message-box-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.5);
       display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -26,6 +26,18 @@
       background: #16a34a; color: #fff;
     }
 
+    /* Modal (popup) for API form */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center; z-index: 1100;
+    }
+    .modal {
+      background: #fff; width: 680px; max-width: 92vw; border-radius: 1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); overflow: hidden;
+      animation: pop .16s ease-out;
+    }
+    @keyframes pop { from { transform: translateY(8px); opacity:.95 } to { transform: translateY(0); opacity:1 } }
+
     /* Radio animation */
     .form-radio {
       appearance: none; display: inline-block; height: 1.1rem; width: 1.1rem; border-radius: 9999px;
@@ -35,6 +47,7 @@
     .form-radio:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
 
     /* Search bar shell */
+    .search-shell { display:flex; gap:.75rem; align-items:center; justify-content:center; max-width: 1080px; margin: 0 auto .75rem; }
     .search-bar-container {
       background: #fff; padding: .75rem 1rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,.08);
       display: flex; align-items: center; gap: .5rem; max-width: 980px; width: 100%;
@@ -51,7 +64,7 @@
     /* Additional options */
     .additional-options-container {
       display: flex; flex-wrap: wrap; justify-content: center; gap: .9rem; font-size: .875rem;
-      max-width: 980px; width: 100%; margin-top: .75rem;
+      max-width: 1080px; width: 100%; margin: .75rem auto 0;
     }
     .additional-options-item {
       display: flex; align-items: center; gap: .5rem; background: #fff; padding: .5rem .9rem; border-radius: .75rem;
@@ -60,59 +73,48 @@
     .additional-options-item select, .additional-options-item input[type="number"] {
       background: #fff; border: 1px solid #d1d5db; border-radius: .375rem; padding: .25rem .5rem; font-size: .875rem;
     }
+
+    /* Tiny status dot inside the API button */
+    .status-dot {
+      width: .55rem; height: .55rem; border-radius: 9999px; display:inline-block; margin-left:.4rem;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 sm:p-8 flex items-start justify-center">
-  <main class="w-full max-w-6xl">
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+  <main class="w-full max-w-6xl mx-auto">
     <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-4">v.2 Microstock Prompt Generator</h1>
 
-    <!-- ==== Panel API Key ==== -->
-    <section class="bg-white rounded-2xl shadow p-4 sm:p-6 mb-5">
-      <div class="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
-        <div class="flex-1">
-          <label for="geminiApiKey" class="block text-sm font-semibold text-gray-700 mb-1">Pasang API Gemini</label>
-          <input id="geminiApiKey" type="password" placeholder="Masukkan API Key Gemini Anda"
-                 class="w-full sm:max-w-xl border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                 autocomplete="off">
-          <p id="apiStatus" class="text-xs text-gray-500 mt-1">Status: <span class="font-medium">Belum dipasang</span></p>
-        </div>
-        <div class="flex gap-2">
-          <button id="btnSaveKey" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg">Simpan</button>
-          <button id="btnTestKey" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Uji Kunci</button>
-          <button id="btnClearKey" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">Hapus</button>
-        </div>
-      </div>
-      <details class="mt-3">
-        <summary class="cursor-pointer text-sm text-gray-700 font-medium select-none">Cara mendapatkan API Gemini</summary>
-        <ol class="text-sm text-gray-600 mt-2 list-decimal ml-5 space-y-1">
-          <li>Kunjungi <a class="text-blue-600 underline" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio – API Keys</a>.</li>
-          <li>Login dengan akun Google & klik <em>Create API key</em> (pilih project jika diminta).</li>
-          <li>Salin <em>API key</em> (formatnya panjang seperti <code>AI..._...</code>), tempel di kolom “Pasang API Gemini”, lalu klik <strong>Simpan</strong>.</li>
-          <li><strong>Catatan:</strong> Kunci disimpan di browser Anda (localStorage). Jangan bagikan di publik.</li>
-        </ol>
-      </details>
-    </section>
-
-    <!-- ==== Search Bar ==== -->
-    <div class="search-bar-container mb-4">
-      <select id="imageStyle" onchange="toggleClayStyleOptions()" class="text-gray-700">
-        <option value="">Gaya Gambar</option>
-        <option value="fotografi realistis">Fotografi Realistis</option>
-        <option value="ilustrasi digital">Ilustrasi Digital</option>
-        <option value="lukisan cat air">Lukisan Cat Air</option>
-        <option value="vektor datar">Vektor Datar</option>
-        <option value="3D render">3D Render</option>
-        <option value="minimalis">Minimalis</option>
-        <option value="abstrak">Abstrak</option>
-        <option value="kartun/komik">Kartun/Komik</option>
-        <option value="vintage/retro">Vintage/Retro</option>
-        <option value="3D Clay Style">3D Clay Style</option>
-      </select>
-      <input type="text" id="keywords" placeholder="Masukkan Kata Kunci..." class="text-gray-700">
-      <button id="btnGenerate"
-              class="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold transition duration-300 ease-in-out">
-        Generate
+    <!-- ==== Row: API Button (left) + Search Bar ==== -->
+    <div class="search-shell">
+      <!-- API button -->
+      <button id="btnOpenApiModal"
+              class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full shrink-0">
+        Pasang API Gemini
+        <span id="apiStatusDot" class="status-dot bg-rose-500"></span>
       </button>
+
+      <!-- Search bar -->
+      <div class="search-bar-container">
+        <select id="imageStyle" onchange="toggleClayStyleOptions()" class="text-gray-700">
+          <option value="">Gaya Gambar</option>
+          <option value="fotografi realistis">Fotografi Realistis</option>
+          <option value="ilustrasi digital">Ilustrasi Digital</option>
+          <option value="lukisan cat air">Lukisan Cat Air</option>
+          <option value="vektor datar">Vektor Datar</option>
+          <option value="3D render">3D Render</option>
+          <option value="minimalis">Minimalis</option>
+          <option value="abstrak">Abstrak</option>
+          <option value="kartun/komik">Kartun/Komik</option>
+          <option value="vintage/retro">Vintage/Retro</option>
+          <option value="3D Clay Style">3D Clay Style</option>
+        </select>
+        <input type="text" id="keywords" placeholder="Masukkan Kata Kunci..." class="text-gray-700">
+        <button id="btnGenerate"
+                class="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold transition duration-300 ease-in-out">
+          Generate
+        </button>
+      </div>
     </div>
 
     <!-- ==== Clay Options ==== -->
@@ -179,6 +181,44 @@
     </section>
   </main>
 
+  <!-- ==== API Modal ==== -->
+  <div id="apiModalOverlay" class="modal-overlay">
+    <div class="modal">
+      <div class="flex items-center justify-between px-5 py-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-800">Pasang API Gemini</h3>
+        <button id="btnCloseApiModal" class="p-2 rounded-md hover:bg-gray-100" aria-label="Tutup">
+          ✕
+        </button>
+      </div>
+      <div class="p-5">
+        <div class="mb-3">
+          <label for="geminiApiKey" class="block text-sm font-semibold text-gray-700 mb-1">API Key</label>
+          <input id="geminiApiKey" type="password" placeholder="Masukkan API Key Gemini Anda"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                 autocomplete="off">
+          <p id="apiStatus" class="text-xs text-gray-500 mt-1">Status: <span class="font-medium">Belum dipasang</span></p>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <button id="btnSaveKey" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg">Simpan</button>
+          <button id="btnTestKey" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Uji Kunci</button>
+          <button id="btnClearKey" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">Hapus</button>
+        </div>
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm text-gray-700 font-medium select-none">Cara mendapatkan API Gemini</summary>
+          <ol class="text-sm text-gray-600 mt-2 list-decimal ml-5 space-y-1">
+            <li>Kunjungi <a class="text-blue-600 underline" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio – API Keys</a>.</li>
+            <li>Login & klik <em>Create API key</em> (pilih project jika diminta).</li>
+            <li>Salin API key (format: <code>AI..._...</code>), tempelkan lalu klik <strong>Simpan</strong>.</li>
+            <li><strong>Catatan:</strong> Kunci disimpan di browser Anda (localStorage). Jangan bagikan.</li>
+          </ol>
+        </details>
+      </div>
+      <div class="px-5 py-4 border-t flex items-center justify-end">
+        <button id="btnCloseApiModal2" class="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-black">Selesai</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==== Message Box ==== -->
   <div id="messageBoxOverlay" class="message-box-overlay">
     <div class="message-box">
@@ -190,6 +230,7 @@
   <script>
     // ===== Globals =====
     let currentGeneratedResults = [];
+    const KEY_STORAGE = 'gemini_api_key';
 
     // ===== Message box utilities =====
     function showMessageBox(message) {
@@ -200,7 +241,7 @@
       document.getElementById('messageBoxOverlay').style.display = 'none';
     }
 
-    // ===== Clipboard helper (modern with fallback) =====
+    // ===== Clipboard helper =====
     async function copyText(textToCopy, typeLabel = 'Teks') {
       try {
         if (navigator.clipboard?.writeText) {
@@ -217,32 +258,54 @@
       }
     }
 
-    // ===== API Key handling =====
-    const KEY_STORAGE = 'gemini_api_key';
-
-    function getSavedApiKey() {
-      return localStorage.getItem(KEY_STORAGE) || '';
-    }
+    // ===== API Key storage =====
+    function getSavedApiKey() { return localStorage.getItem(KEY_STORAGE) || ''; }
     function setSavedApiKey(v) {
       if (v) localStorage.setItem(KEY_STORAGE, v);
       else localStorage.removeItem(KEY_STORAGE);
       renderApiStatus();
+      renderApiDot();
     }
+
+    // ===== UI: API status text + dot color =====
     function renderApiStatus() {
       const key = getSavedApiKey();
       const status = document.getElementById('apiStatus');
       const btnGenerate = document.getElementById('btnGenerate');
-      if (key) {
-        status.innerHTML = 'Status: <span class="text-emerald-700 font-semibold">Terpasang</span>';
-        btnGenerate.removeAttribute('disabled');
-      } else {
-        status.innerHTML = 'Status: <span class="text-rose-700 font-semibold">Belum dipasang</span>';
-        btnGenerate.setAttribute('disabled', 'disabled');
+      if (status) {
+        status.innerHTML = 'Status: ' + (key
+          ? '<span class="text-emerald-700 font-semibold">Terpasang</span>'
+          : '<span class="text-rose-700 font-semibold">Belum dipasang</span>');
+      }
+      if (btnGenerate) {
+        if (key) btnGenerate.removeAttribute('disabled');
+        else btnGenerate.setAttribute('disabled', 'disabled');
       }
     }
+    function renderApiDot() {
+      const dot = document.getElementById('apiStatusDot');
+      if (!dot) return;
+      if (getSavedApiKey()) dot.classList.replace('bg-rose-500', 'bg-emerald-500');
+      else dot.classList.replace('bg-emerald-500', 'bg-rose-500');
+    }
 
+    // ===== Modal open/close =====
+    function openApiModal() {
+      const overlay = document.getElementById('apiModalOverlay');
+      const input = document.getElementById('geminiApiKey');
+      if (overlay) overlay.style.display = 'flex';
+      if (input) input.value = getSavedApiKey();
+      renderApiStatus();
+    }
+    function closeApiModal() {
+      const overlay = document.getElementById('apiModalOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    // ===== API key test =====
     async function testApiKey() {
-      const apiKey = document.getElementById('geminiApiKey').value.trim() || getSavedApiKey();
+      const input = document.getElementById('geminiApiKey');
+      const apiKey = input.value.trim() || getSavedApiKey();
       if (!apiKey) return showMessageBox('Masukkan API Key terlebih dahulu.');
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
@@ -251,7 +314,7 @@
           showMessageBox('API Key valid & dapat digunakan.');
         } else {
           const err = await res.json().catch(() => ({}));
-          showMessageBox('API Key kemungkinan tidak valid / dibatasi.\n' + (err.error?.message || 'Coba periksa kembali.'));
+          showMessageBox('API Key mungkin tidak valid/dibatasi.\n' + (err.error?.message || 'Periksa kembali.'));
         }
       } catch (e) {
         console.error(e);
@@ -259,33 +322,37 @@
       }
     }
 
-    // ===== UI init =====
+    // ===== Init bindings =====
     document.addEventListener('DOMContentLoaded', () => {
-      // Set initial key field from storage
-      const saved = getSavedApiKey();
-      const keyInput = document.getElementById('geminiApiKey');
-      if (saved) keyInput.value = saved;
-      renderApiStatus();
+      renderApiStatus(); renderApiDot();
 
-      // Bind buttons
+      // Open/close modal
+      document.getElementById('btnOpenApiModal').addEventListener('click', openApiModal);
+      document.getElementById('btnCloseApiModal').addEventListener('click', closeApiModal);
+      document.getElementById('btnCloseApiModal2').addEventListener('click', closeApiModal);
+      document.getElementById('apiModalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'apiModalOverlay') closeApiModal(); // click outside to close
+      });
+
+      // API actions
       document.getElementById('btnSaveKey').addEventListener('click', () => {
-        const v = keyInput.value.trim();
+        const v = document.getElementById('geminiApiKey').value.trim();
         if (!v) return showMessageBox('API Key kosong.');
         setSavedApiKey(v);
         showMessageBox('API Key disimpan di browser Anda.');
       });
       document.getElementById('btnClearKey').addEventListener('click', () => {
-        keyInput.value = '';
+        document.getElementById('geminiApiKey').value = '';
         setSavedApiKey('');
         showMessageBox('API Key dihapus dari browser.');
       });
       document.getElementById('btnTestKey').addEventListener('click', testApiKey);
 
-      // Generate handler
+      // Generate click
       document.getElementById('btnGenerate').addEventListener('click', generatePrompts);
     });
 
-    // ===== UI parts already in your original code =====
+    // ===== Existing helpers =====
     function toggleClayStyleOptions() {
       const imageStyle = document.getElementById('imageStyle').value;
       const clayOptionsDiv = document.getElementById('clayStyleBackgroundOptions');
@@ -351,7 +418,7 @@
     async function generatePrompts() {
       const apiKey = getSavedApiKey();
       if (!apiKey) {
-        showMessageBox('Pasang API Gemini dulu di bagian atas, lalu klik Simpan.');
+        showMessageBox('Pasang API Gemini dulu (klik tombol di kiri), lalu Simpan.');
         return;
       }
 
@@ -449,7 +516,6 @@
 
         // Render cards
         const wrap = document.getElementById('generatedContent');
-        const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
         currentGeneratedResults.forEach(item => {
           const card = document.createElement('div');
           card.className = 'bg-white p-4 rounded-lg shadow-md';

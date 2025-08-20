@@ -7,15 +7,17 @@
   <meta name="description" content="Catatan minimalis dengan Rich Text & Coding (textarea), share URL/WA, slug kustom, dan simpan/ambil dari Google Sheet. Siap untuk GitHub Pages." />
   <!--
     ================== GOOGLE SHEETS BACKEND (APPS SCRIPT) ==================
-    1) Buat Google Spreadsheet. Pastikan sheet bernama 'Sheet1' dengan header: code | title | payload | updatedAt
+    1) Buat Google Spreadsheet. Pastikan sheet bernama 'Sheet1' dengan header persis:
+    Code | Title | Text Note | Created Date | Edit Date | Link Notes
     2) Extensions → Apps Script → tempel kode di bawah → Deploy → New deployment → Web app
        - Execute as: Me   •   Who has access: Anyone
        - Salin URL Web App dan ganti konstanta SHEET_API di bawah.
 
     ----- BEGIN APPS SCRIPT -----
-    // NOTE: Frontend mengirim POST dengan Content-Type: text/plain (bukan JSON)
-    // agar TIDAK memicu CORS preflight. Body berisi string JSON pada e.postData.contents.
+    // Skema kolom: Code | Title | Text Note | Created Date | Edit Date | Link Notes
+    // Frontend mengirim POST dengan Content-Type: text/plain (tanpa preflight), body JSON string.
     const SHEET_NAME = 'Sheet1';
+    const COL = { CODE:1, TITLE:2, TEXT:3, CREATED:4, EDITED:5, LINK:6 };
     function _json(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
     function _findRowByCode(sh, code){ const vals = sh.getDataRange().getValues(); return vals.findIndex(r => (r[0]||'').toString().trim()===code); }
 
@@ -26,20 +28,14 @@
       if (act==='get'){
         const code = (e.parameter.code||'').trim();
         const idx = _findRowByCode(sh, code);
-        if (idx>-1){ const row = sh.getRange(idx+1,1,1,4).getValues()[0]; return _json({ok:true, row:{code:row[0], title:row[1], payload:row[2], updatedAt:row[3]}}); }
+        if (idx>-1){
+          const row = sh.getRange(idx+1,1,1,6).getValues()[0];
+          return _json({ok:true, row:{
+            code:row[COL.CODE-1], title:row[COL.TITLE-1], text:row[COL.TEXT-1],
+            createdAt:row[COL.CREATED-1], editedAt:row[COL.EDITED-1], link:row[COL.LINK-1]
+          }});
+        }
         return _json({ok:false, error:'not_found'});
-      }
-      // (opsional) fallback GET save: /exec?action=save&code=...&payload=...
-      if (act==='save'){
-        const code = (e.parameter.code||'').trim();
-        const title = e.parameter.title||'';
-        const payload = e.parameter.payload||'';
-        if (!code || !payload) return _json({ok:false, error:'missing_fields'});
-        const ts = new Date();
-        const idx = _findRowByCode(sh, code);
-        if (idx>-1) sh.getRange(idx+1,1,1,4).setValues([[code,title,payload,ts]]);
-        else sh.appendRow([code,title,payload,ts]);
-        return _json({ok:true, code});
       }
       return _json({ok:false, error:'invalid_action'});
     }
@@ -47,15 +43,35 @@
     function doPost(e){
       const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
       const body = JSON.parse(e.postData.contents||'{}');
+      const action = (body.action||'save').toLowerCase();
       const code = (body.code||'').trim();
       const title = body.title||'';
-      const payload = body.payload||'';
-      const ts = new Date();
-      if (!code || !payload) return _json({ok:false, error:'missing_fields'});
+      const text = body.text||'';
+      const link = body.link||'';
+      if (!code) return _json({ok:false, error:'missing_code'});
+      const now = new Date();
       const idx = _findRowByCode(sh, code);
-      if (idx>-1) sh.getRange(idx+1,1,1,4).setValues([[code,title,payload,ts]]);
-      else sh.appendRow([code,title,payload,ts]);
-      return _json({ok:true, code});
+
+      if (action==='delete'){
+        if (idx>-1){ sh.deleteRow(idx+1); return _json({ok:true, deleted:true, code}); }
+        return _json({ok:false, error:'not_found'});
+      }
+
+      if (action==='save'){
+        if (idx>-1){
+          // Update: Title, Text, Edited, Link (Created tetap)
+          sh.getRange(idx+1, COL.TITLE).setValue(title);
+          sh.getRange(idx+1, COL.TEXT).setValue(text);
+          sh.getRange(idx+1, COL.EDITED).setValue(now);
+          sh.getRange(idx+1, COL.LINK).setValue(link);
+        } else {
+          // Insert baru
+          sh.appendRow([code, title, text, now, now, link]);
+        }
+        return _json({ok:true, code});
+      }
+
+      return _json({ok:false, error:'invalid_action'});
     }
     ----- END APPS SCRIPT -----
   -->
@@ -205,6 +221,7 @@
       <div class="row" id="actionRow">
         <div class="spacer"></div>
         <button id="btnSaveSheet" class="btn">Save to Sheet</button>
+        <button id="btnDeleteSheet" class="btn ghost">Delete from Sheet</button>
         <button id="btnDelete" class="btn ghost">Delete</button>
       </div>
 
@@ -247,7 +264,7 @@
 <script>
 (function(){
   // ================= CONFIG =================
-  const SHEET_API = 'https://script.google.com/macros/s/AKfycbwpJSOETKRAO7uh4veLfAUppJwOjpbpj0FoPt7uksb4v0rZJIHGWoDDxaORqTYFQS0y/exec'; // GANTI dengan URL Web App milikmu
+  const SHEET_API = 'https://script.google.com/macros/s/AKfycbyNsNZiyBfkzW40yIli2c_Qh5k4GKl4NhgF0ltm9HVMqz7au4EGoQZ-3-qbF3begPpD/exec'; // GANTI dengan URL Web App milikmu
   const SHEET_TIMEOUT_MS = 8000;
 
   // ================ HELPERS ================
@@ -330,16 +347,32 @@
     if (!currentSlug) currentSlug = slugify(byId('title').value) || makeId();
     byId('slug').value = currentSlug; byId('slug').dataset.manual = '1';
     const note = buildNoteObj();
-    const payload = buildPayload(note);
+    const fullLink = buildFullLink();
     const code = currentSlug; // sheet code otomatis mengikuti URL (slug)
     const { ok, data, error } = await requestJSON(SHEET_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple request → tanpa preflight CORS
-      body: JSON.stringify({ action:'save', code, title: note.title||'', payload })
+      body: JSON.stringify({ action:'save', code, title: note.title||'', text: note.content||'', link: fullLink })
     });
     if (!ok){ console.warn(error); toast('Gagal simpan Sheet: ' + error); return; }
     if (data && data.ok){ toast('Tersimpan (Sheet)'); updateURLView(); }
     else { toast('Gagal simpan Sheet'); }
+  }
+
+  async function deleteFromSheet(){
+    if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi'); return; }
+    if (!navigator.onLine){ toast('Offline: tidak bisa delete di Sheet'); return; }
+    const code = currentSlug || slugify(byId('title').value);
+    if (!code){ toast('Belum ada slug/kode'); return; }
+    const okGo = confirm(`Hapus catatan di Sheet dengan kode "${code}"?`);
+    if (!okGo) return;
+    const { ok, data, error } = await requestJSON(SHEET_API, {
+      method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'delete', code })
+    });
+    if (!ok){ console.warn(error); toast('Gagal delete Sheet: ' + error); return; }
+    if (data && data.ok){ toast('Terhapus di Sheet'); clearEditor(); showHome(); }
+    else { toast(data && data.error ? `Gagal delete: ${data.error}` : 'Gagal delete Sheet'); }
   }
 
   async function loadFromSheet(code){
@@ -347,10 +380,10 @@
     if (!navigator.onLine){ toast('Offline: tidak bisa load dari Sheet'); return; }
     const { ok, data, error } = await requestJSON(`${SHEET_API}?action=get&code=${encodeURIComponent(code)}`);
     if (!ok){ console.warn(error); toast('Gagal load Sheet: ' + error); return; }
-    if (data && data.ok && data.row && data.row.payload){
-      const obj = safeDecodePayload(data.row.payload);
-      currentSlug = code; // sheet code mengikuti URL
-      setFromNoteObj({ id: obj.id, title: obj.title, content: obj.content, mode: obj.mode, slug: currentSlug, updatedAt: Date.now() });
+    if (data && data.ok && data.row){
+      const txt = (data.row.text != null) ? String(data.row.text) : (data.row.payload ? (safeDecodePayload(data.row.payload).content||'') : '');
+      currentSlug = code;
+      setFromNoteObj({ id: makeId(), title: data.row.title||'', content: txt, mode: 'text', slug: currentSlug, updatedAt: Date.now() });
       toast('Dimuat (Sheet)'); hideModal();
     } else { toast('Kode tidak ditemukan'); }
   }
@@ -361,10 +394,13 @@
   function clearEditor(){ currentId=null; currentSlug=''; byId('title').value=''; byId('mode').value='text'; toggleModeUI(); setEditorValue(''); }
 
   // URL/Slug & Share
-  function updateURLView(){
+  function buildFullLink(){
     const base = location.origin + location.pathname;
     const slug = currentSlug ? `?n=${encodeURIComponent(currentSlug)}` : '?n=demo';
-    const full = base + slug;
+    return base + slug;
+  }
+  function updateURLView(){
+    const full = buildFullLink();
     byId('urlView').textContent = full;
     byId('shareUrl').href = full; byId('shareUrl').textContent = full;
     byId('shareCopy').onclick = (e)=>{ e.preventDefault(); copy(full); };
@@ -407,7 +443,9 @@
   byId('btnCancel').onclick = hideModal; byId('btnLoadSheet').onclick = ()=>{ const code=byId('inpCode').value.trim(); if (code) loadFromSheet(code); };
 
   // Save/Delete
-  byId('btnSaveSheet').onclick = saveToSheet; byId('btnDelete').onclick = ()=>{ if (!currentId){ toast('Belum ada catatan'); return; } const ok = confirm('Hapus catatan ini?'); if (!ok) return; clearEditor(); showHome(); toast('Dihapus'); };
+  byId('btnSaveSheet').onclick = saveToSheet;
+  byId('btnDeleteSheet').onclick = deleteFromSheet;
+  byId('btnDelete').onclick = ()=>{ if (!currentId){ toast('Belum ada catatan'); return; } const ok = confirm('Hapus catatan ini?'); if (!ok) return; clearEditor(); showHome(); toast('Dihapus'); };
 
   // Mode & Lang
   byId('mode').addEventListener('change', ()=>{ toggleModeUI(); updateShareArtifacts(); });
@@ -481,6 +519,10 @@
       const obj = safeDecodePayload(lz);
       add('Decode LZ payload', obj && obj.content==='world');
     }catch(e){ add('Decode LZ payload', false, e.message); }
+
+    // T8: Delete from Sheet button present
+    try{ const el = byId('btnDeleteSheet'); add('Delete from Sheet button present', !!el); }
+    catch(e){ add('Delete from Sheet button present', false, e.message); }
 
     add('Sheet API configured', isSheetConfigured());
 

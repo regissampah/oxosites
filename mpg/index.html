@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Microstock Prompt Generator • GitHub Pages</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    /* Custom message box */
+    .message-box-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .message-box { background: #fff; padding: 1.25rem; border-radius: .5rem; width: 320px; max-width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15); text-align: center; }
+    .message-box button {
+      margin-top: .75rem; padding: .5rem 1rem; border: 0; border-radius: .375rem; cursor: pointer;
+      background: #16a34a; color: #fff;
+    }
+
+    /* Radio animation */
+    .form-radio {
+      appearance: none; display: inline-block; height: 1.1rem; width: 1.1rem; border-radius: 9999px;
+      border: 2px solid #cbd5e0; background: #fff; transition: all .2s ease; cursor: pointer;
+    }
+    .form-radio:checked { background: #10B981; border-color: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
+    .form-radio:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
+
+    /* Search bar shell */
+    .search-bar-container {
+      background: #fff; padding: .75rem 1rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      display: flex; align-items: center; gap: .5rem; max-width: 980px; width: 100%;
+    }
+    .search-bar-container input, .search-bar-container select {
+      border: none; outline: none; box-shadow: none; padding: .5rem .75rem; border-radius: .375rem;
+    }
+    .search-bar-container select {
+      flex-shrink: 0; width: 170px; background: #f3f4f6; border-radius: 9999px;
+    }
+    .search-bar-container input { flex: 1; }
+    .search-bar-container button { padding: .55rem 1.25rem; border-radius: 9999px; }
+
+    /* Additional options */
+    .additional-options-container {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: .9rem; font-size: .875rem;
+      max-width: 980px; width: 100%; margin-top: .75rem;
+    }
+    .additional-options-item {
+      display: flex; align-items: center; gap: .5rem; background: #fff; padding: .5rem .9rem; border-radius: .75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .additional-options-item select, .additional-options-item input[type="number"] {
+      background: #fff; border: 1px solid #d1d5db; border-radius: .375rem; padding: .25rem .5rem; font-size: .875rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8 flex items-start justify-center">
+  <main class="w-full max-w-6xl">
+    <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-4">v.2 Microstock Prompt Generator</h1>
+
+    <!-- ==== Panel API Key ==== -->
+    <section class="bg-white rounded-2xl shadow p-4 sm:p-6 mb-5">
+      <div class="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+        <div class="flex-1">
+          <label for="geminiApiKey" class="block text-sm font-semibold text-gray-700 mb-1">Pasang API Gemini</label>
+          <input id="geminiApiKey" type="password" placeholder="Masukkan API Key Gemini Anda"
+                 class="w-full sm:max-w-xl border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                 autocomplete="off">
+          <p id="apiStatus" class="text-xs text-gray-500 mt-1">Status: <span class="font-medium">Belum dipasang</span></p>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnSaveKey" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg">Simpan</button>
+          <button id="btnTestKey" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Uji Kunci</button>
+          <button id="btnClearKey" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">Hapus</button>
+        </div>
+      </div>
+      <details class="mt-3">
+        <summary class="cursor-pointer text-sm text-gray-700 font-medium select-none">Cara mendapatkan API Gemini</summary>
+        <ol class="text-sm text-gray-600 mt-2 list-decimal ml-5 space-y-1">
+          <li>Kunjungi <a class="text-blue-600 underline" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio – API Keys</a>.</li>
+          <li>Login dengan akun Google & klik <em>Create API key</em> (pilih project jika diminta).</li>
+          <li>Salin <em>API key</em> (formatnya panjang seperti <code>AI..._...</code>), tempel di kolom “Pasang API Gemini”, lalu klik <strong>Simpan</strong>.</li>
+          <li><strong>Catatan:</strong> Kunci disimpan di browser Anda (localStorage). Jangan bagikan di publik.</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- ==== Search Bar ==== -->
+    <div class="search-bar-container mb-4">
+      <select id="imageStyle" onchange="toggleClayStyleOptions()" class="text-gray-700">
+        <option value="">Gaya Gambar</option>
+        <option value="fotografi realistis">Fotografi Realistis</option>
+        <option value="ilustrasi digital">Ilustrasi Digital</option>
+        <option value="lukisan cat air">Lukisan Cat Air</option>
+        <option value="vektor datar">Vektor Datar</option>
+        <option value="3D render">3D Render</option>
+        <option value="minimalis">Minimalis</option>
+        <option value="abstrak">Abstrak</option>
+        <option value="kartun/komik">Kartun/Komik</option>
+        <option value="vintage/retro">Vintage/Retro</option>
+        <option value="3D Clay Style">3D Clay Style</option>
+      </select>
+      <input type="text" id="keywords" placeholder="Masukkan Kata Kunci..." class="text-gray-700">
+      <button id="btnGenerate"
+              class="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold transition duration-300 ease-in-out">
+        Generate
+      </button>
+    </div>
+
+    <!-- ==== Clay Options ==== -->
+    <div id="clayStyleBackgroundOptions" class="hidden additional-options-item mx-auto mb-4">
+      <span class="text-gray-700 font-semibold">Latar Belakang 3D Clay Style:</span>
+      <div class="flex items-center space-x-4">
+        <label class="inline-flex items-center cursor-pointer">
+          <input type="radio" name="clayBackground" value="transparent background" class="form-radio" checked>
+          <span class="ml-2 text-gray-700 text-sm">Transparan</span>
+        </label>
+        <label class="inline-flex items-center cursor-pointer">
+          <input type="radio" name="clayBackground" value="flat color background" class="form-radio">
+          <span class="ml-2 text-gray-700 text-sm">Warna Datar</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ==== Additional Options ==== -->
+    <div class="additional-options-container">
+      <div class="additional-options-item">
+        <span class="text-gray-700 font-semibold">Rasio:</span>
+        <select id="aspectRatio" class="shadow appearance-none border rounded-md py-0.5 px-1 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+          <option value="">Pilih</option>
+          <option value="1:1">1:1</option>
+          <option value="16:9">16:9</option>
+          <option value="9:16">9:16</option>
+          <option value="4:3">4:3</option>
+          <option value="3:2">3:2</option>
+        </select>
+      </div>
+      <div class="additional-options-item">
+        <span class="text-gray-700 font-semibold">Format:</span>
+        <div class="flex items-center space-x-2">
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="radio" name="outputFormat" value="text" class="form-radio" checked>
+            <span class="ml-2 text-gray-700">Teks</span>
+          </label>
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="radio" name="outputFormat" value="json" class="form-radio">
+            <span class="ml-2 text-gray-700">JSON</span>
+          </label>
+        </div>
+      </div>
+      <div class="additional-options-item">
+        <span class="text-gray-700 font-semibold">Jumlah:</span>
+        <input type="number" id="numGenerations" value="3" min="1" max="5"
+               class="shadow appearance-none border rounded-md py-0.5 px-1 text-gray-700 leading-tight focus:outline-none focus:shadow-outline w-16 text-center">
+      </div>
+    </div>
+
+    <!-- ==== Loading ==== -->
+    <div id="loadingIndicator" class="hidden text-center mt-4 text-gray-600">
+      <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      <p class="mt-2">Generating prompts...</p>
+    </div>
+
+    <!-- ==== Results ==== -->
+    <section id="result-area" class="output bg-gray-50 p-4 rounded-lg mt-6 shadow-inner hidden w-full max-w-screen-xl mx-auto">
+      <div id="generatedContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <button onclick="exportToCsv()"
+              class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out w-full">
+        Export to CSV
+      </button>
+    </section>
+  </main>
+
+  <!-- ==== Message Box ==== -->
+  <div id="messageBoxOverlay" class="message-box-overlay">
+    <div class="message-box">
+      <p id="messageBoxText" class="text-gray-800"></p>
+      <button onclick="hideMessageBox()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Globals =====
+    let currentGeneratedResults = [];
+
+    // ===== Message box utilities =====
+    function showMessageBox(message) {
+      document.getElementById('messageBoxText').innerText = message;
+      document.getElementById('messageBoxOverlay').style.display = 'flex';
+    }
+    function hideMessageBox() {
+      document.getElementById('messageBoxOverlay').style.display = 'none';
+    }
+
+    // ===== Clipboard helper (modern with fallback) =====
+    async function copyText(textToCopy, typeLabel = 'Teks') {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = textToCopy; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        }
+        showMessageBox(typeLabel + ' berhasil disalin!');
+      } catch (err) {
+        console.error('Clipboard error:', err);
+        showMessageBox('Gagal menyalin ' + typeLabel + '. Salin manual.');
+      }
+    }
+
+    // ===== API Key handling =====
+    const KEY_STORAGE = 'gemini_api_key';
+
+    function getSavedApiKey() {
+      return localStorage.getItem(KEY_STORAGE) || '';
+    }
+    function setSavedApiKey(v) {
+      if (v) localStorage.setItem(KEY_STORAGE, v);
+      else localStorage.removeItem(KEY_STORAGE);
+      renderApiStatus();
+    }
+    function renderApiStatus() {
+      const key = getSavedApiKey();
+      const status = document.getElementById('apiStatus');
+      const btnGenerate = document.getElementById('btnGenerate');
+      if (key) {
+        status.innerHTML = 'Status: <span class="text-emerald-700 font-semibold">Terpasang</span>';
+        btnGenerate.removeAttribute('disabled');
+      } else {
+        status.innerHTML = 'Status: <span class="text-rose-700 font-semibold">Belum dipasang</span>';
+        btnGenerate.setAttribute('disabled', 'disabled');
+      }
+    }
+
+    async function testApiKey() {
+      const apiKey = document.getElementById('geminiApiKey').value.trim() || getSavedApiKey();
+      if (!apiKey) return showMessageBox('Masukkan API Key terlebih dahulu.');
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          showMessageBox('API Key valid & dapat digunakan.');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showMessageBox('API Key kemungkinan tidak valid / dibatasi.\n' + (err.error?.message || 'Coba periksa kembali.'));
+        }
+      } catch (e) {
+        console.error(e);
+        showMessageBox('Gagal menguji API Key (mungkin terblokir oleh jaringan/CORS).');
+      }
+    }
+
+    // ===== UI init =====
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set initial key field from storage
+      const saved = getSavedApiKey();
+      const keyInput = document.getElementById('geminiApiKey');
+      if (saved) keyInput.value = saved;
+      renderApiStatus();
+
+      // Bind buttons
+      document.getElementById('btnSaveKey').addEventListener('click', () => {
+        const v = keyInput.value.trim();
+        if (!v) return showMessageBox('API Key kosong.');
+        setSavedApiKey(v);
+        showMessageBox('API Key disimpan di browser Anda.');
+      });
+      document.getElementById('btnClearKey').addEventListener('click', () => {
+        keyInput.value = '';
+        setSavedApiKey('');
+        showMessageBox('API Key dihapus dari browser.');
+      });
+      document.getElementById('btnTestKey').addEventListener('click', testApiKey);
+
+      // Generate handler
+      document.getElementById('btnGenerate').addEventListener('click', generatePrompts);
+    });
+
+    // ===== UI parts already in your original code =====
+    function toggleClayStyleOptions() {
+      const imageStyle = document.getElementById('imageStyle').value;
+      const clayOptionsDiv = document.getElementById('clayStyleBackgroundOptions');
+      if (imageStyle === '3D Clay Style') {
+        clayOptionsDiv.classList.remove('hidden');
+      } else {
+        clayOptionsDiv.classList.add('hidden');
+      }
+    }
+
+    function escapeCsv(value) {
+      if (value === null || value === undefined) return '';
+      let s = String(value);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        s = s.replace(/"/g, '""');
+        return `"${s}"`;
+      }
+      return s;
+    }
+
+    function generateRandomId(length) {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) result += characters.charAt(Math.floor(Math.random() * characters.length));
+      return 'bikin' + result;
+    }
+
+    function exportToCsv() {
+      if (currentGeneratedResults.length === 0) {
+        showMessageBox('Tidak ada data untuk diekspor. Hasilkan prompt terlebih dahulu.');
+        return;
+      }
+      const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
+      let csvContent = '';
+      if (outputFormat === 'json') {
+        csvContent = 'ID Unik,Data JSON Lengkap\n';
+        currentGeneratedResults.forEach(item => {
+          const fullJsonData = JSON.stringify({
+            title: item.title, prompt: item.prompt, negativePrompt: item.negativePrompt, uniqueId: item.uniqueId
+          }, null, 2);
+          csvContent += `${escapeCsv(item.uniqueId)},${escapeCsv(fullJsonData)}\n`;
+        });
+      } else {
+        csvContent = 'ID Unik,Judul,Prompt Gambar,Negative Prompt\n';
+        currentGeneratedResults.forEach(item => {
+          csvContent += `${escapeCsv(item.uniqueId)},${escapeCsv(item.title)},${escapeCsv(item.prompt)},${escapeCsv(item.negativePrompt)}\n`;
+        });
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const keywords = document.getElementById('keywords').value.trim().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+      const filename = `microstock_prompts_${keywords || 'no_keywords'}_${ts}.csv`;
+
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // ===== Core: Generate prompts via Gemini API =====
+    async function generatePrompts() {
+      const apiKey = getSavedApiKey();
+      if (!apiKey) {
+        showMessageBox('Pasang API Gemini dulu di bagian atas, lalu klik Simpan.');
+        return;
+      }
+
+      const keywords = document.getElementById('keywords').value.trim();
+      const imageStyle = document.getElementById('imageStyle').value;
+      const aspectRatio = document.getElementById('aspectRatio').value;
+      const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
+      const numGenerations = parseInt(document.getElementById('numGenerations').value, 10);
+
+      if (!keywords) return showMessageBox('Please enter keywords!');
+      if (isNaN(numGenerations) || numGenerations < 1 || numGenerations > 5) {
+        return showMessageBox('Please enter a valid number of generations (1-5).');
+      }
+
+      document.getElementById('loadingIndicator').classList.remove('hidden');
+      document.getElementById('result-area').style.display = 'none';
+      document.getElementById('generatedContent').innerHTML = '';
+      currentGeneratedResults = [];
+
+      try {
+        for (let i = 0; i < numGenerations; i++) {
+          let promptText =
+            `Generate a unique microstock image title, an AI art prompt, and a negative prompt based on the following keywords: ${keywords}.`;
+
+          if (imageStyle) {
+            promptText += ` The image should be in a ${imageStyle} style.`;
+            if (imageStyle === '3D Clay Style') {
+              const clayBackground = document.querySelector('input[name="clayBackground"]:checked')?.value;
+              if (clayBackground) promptText += ` with a ${clayBackground}.`;
+            }
+          }
+          if (aspectRatio) promptText += ` The image aspect ratio should be ${aspectRatio}.`;
+          promptText += ` The AI art prompt should be detailed and include artistic styles or photography terms.` +
+                        ` The negative prompt should list things to avoid.` +
+                        ` Provide the output in JSON format with 'title', 'prompt', and 'negativePrompt' keys.`;
+
+          const payload = {
+            contents: [{ role: "user", parts: [{ text: promptText }]}],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  "title": { "type": "STRING" },
+                  "prompt": { "type": "STRING" },
+                  "negativePrompt": { "type": "STRING" }
+                },
+                propertyOrdering: ["title", "prompt", "negativePrompt"]
+              }
+            }
+          };
+
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            let msg = `HTTP ${response.status}`;
+            try {
+              const errorData = await response.json();
+              if (errorData?.error?.message) msg += ` — ${errorData.error.message}`;
+            } catch (_) {}
+            showMessageBox(`Failed to generate prompt ${i + 1}: ${msg}`);
+            break;
+          }
+
+          const result = await response.json();
+          let generatedTitle = '', generatedPrompt = '', generatedNegativePrompt = '';
+
+          if (result.candidates?.length &&
+              result.candidates[0].content?.parts?.length) {
+            const jsonString = result.candidates[0].content.parts[0].text || '';
+            try {
+              const parsed = JSON.parse(jsonString);
+              generatedTitle = parsed.title || 'No Title Generated';
+              generatedPrompt = parsed.prompt || 'No Prompt Generated';
+              generatedNegativePrompt = parsed.negativePrompt || 'No Negative Prompt Generated';
+            } catch (err) {
+              console.error('Parse JSON error:', err, jsonString);
+              showMessageBox(`Failed to parse response from AI for prompt ${i + 1}.`);
+              break;
+            }
+          } else {
+            showMessageBox(`No valid response received from AI for prompt ${i + 1}.`);
+            break;
+          }
+
+          const uniqueId = generateRandomId(5);
+          currentGeneratedResults.push({ title: generatedTitle, prompt: generatedPrompt, negativePrompt: generatedNegativePrompt, uniqueId });
+        }
+
+        // Render cards
+        const wrap = document.getElementById('generatedContent');
+        const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
+        currentGeneratedResults.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'bg-white p-4 rounded-lg shadow-md';
+          if (outputFormat === 'json') {
+            const fullJson = JSON.stringify(item, null, 2);
+            card.innerHTML = `
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Nama judul: ${item.title} • Image ID: ${item.uniqueId}</h3>
+              <pre class="bg-gray-100 p-2 rounded-md text-sm overflow-auto max-h-60">${fullJson}</pre>
+              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full"
+                      onclick="copyText(\`${fullJson}\`, 'Semua JSON')">Salin Semua JSON</button>
+            `;
+          } else {
+            const fullText = `Judul: ${item.title}\nPrompt Gambar: ${item.prompt}\nNegative Prompt: ${item.negativePrompt}\nID: ${item.uniqueId}`;
+            card.innerHTML = `
+              <h3 class="text-lg font-semibold mb-2 text-gray-800">Judul: ${item.title}</h3>
+              <h4 class="text-gray-800 font-semibold mb-1">Prompt Gambar:</h4>
+              <p class="text-gray-700 mb-2 break-words">${item.prompt}</p>
+              <h4 class="text-gray-800 font-semibold mb-1">Negative Prompt:</h4>
+              <p class="text-gray-700 mb-2 break-words">${item.negativePrompt}</p>
+              <p class="text-xs text-gray-500">ID: ${item.uniqueId}</p>
+              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full"
+                      onclick="copyText(\`${fullText}\`, 'Semua Teks')">Salin Semua Teks</button>
+            `;
+          }
+          wrap.appendChild(card);
+        });
+
+        if (currentGeneratedResults.length > 0) {
+          document.getElementById('result-area').style.display = 'block';
+        }
+      } catch (e) {
+        console.error('Unexpected error:', e);
+        showMessageBox('Terjadi kesalahan tak terduga. Coba lagi.');
+      } finally {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>

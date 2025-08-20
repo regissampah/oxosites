@@ -262,33 +262,28 @@
   const dec = (str) => JSON.parse(LZString.decompressFromEncodedURIComponent(str));
   const isSheetConfigured = () => SHEET_API && !SHEET_API.includes('PASTE_WEB_APP_URL');
 
-  async function requestJSON(url, options={
+  async function requestJSON(url, options={}){
+    const ac = new AbortController();
+    const timer = setTimeout(()=>ac.abort(), SHEET_TIMEOUT_MS);
+    try{
+      const res = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow', ...options, signal: ac.signal });
+      clearTimeout(timer);
+      const ct = (res.headers && res.headers.get('content-type')) || '';
+      if (!res.ok){
+        const text = await res.text().catch(()=>res.statusText);
+        return { ok:false, error:`HTTP ${res.status} ${res.statusText}${ct?` (${ct})`:''}: ${text.slice(0,200)}` };
+      }
       if (ct.includes('application/json')){
         const data = await res.json();
         return { ok:true, data };
       } else {
+        // Kadang Apps Script mengembalikan HTML jika belum publik; coba parse JSON dulu
         const text = await res.text().catch(()=>'(no body)');
-        return { ok:false, error:`Unexpected response (content-type: ${ct||'unknown'}). Kemungkinan Web App perlu akses "Anyone" / login page.`, body:text.slice(0,200) };
+        try { const data = JSON.parse(text); return { ok:true, data }; }
+        catch(e){ return { ok:false, error:`Unexpected response (content-type: ${ct||'unknown'})`, body:text.slice(0,200) }; }
       }
     }catch(err){
-      clearTimeout(id);
-      if (err.name === 'AbortError') return { ok:false, error:'Timeout – server tidak merespons' };
-      return { ok:false, error: (err && err.message) || 'Failed to fetch' };
-    }
-  }){
-    const ac = new AbortController();
-    const id = setTimeout(()=>ac.abort(), SHEET_TIMEOUT_MS);
-    try{
-      const res = await fetch(url, { ...options, signal: ac.signal });
-      clearTimeout(id);
-      if (!res.ok){
-        const text = await res.text().catch(()=>res.statusText);
-        return { ok:false, error:`HTTP ${res.status} ${res.statusText}: ${text}` };
-      }
-      const data = await res.json();
-      return { ok:true, data };
-    }catch(err){
-      clearTimeout(id);
+      clearTimeout(timer);
       if (err.name === 'AbortError') return { ok:false, error:'Timeout – server tidak merespons' };
       return { ok:false, error: (err && err.message) || 'Failed to fetch' };
     }

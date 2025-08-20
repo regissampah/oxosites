@@ -102,6 +102,7 @@
   <!-- LZ-String untuk kompresi -->
   <script defer src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 
+  <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css">
   <style>
     :root{
       --bg: #f7f7fb;       /* latar putih lembut */
@@ -171,6 +172,16 @@
     .urlRow a{max-width:70vw;overflow:hidden;text-overflow:ellipsis;display:inline-block}
     .icon-inline{appearance:none;border:1px solid var(--ring);background:#fff;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer}
     .icon-inline:hover{transform:translateY(-1px)}
+  .busy{position:fixed;inset:0;background:rgba(15,23,42,.15);display:none;align-items:center;justify-content:center;z-index:1000}
+    .busy-box{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--ring);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px}
+    .busy-box .uil{font-size:20px;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #toast{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:1001}
+    .toast{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--ring);border-left:4px solid #3b82f6;border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;opacity:0;transform:translateY(8px);animation:toastIn .18s ease-out forwards}
+    .toast.success{border-left-color:#16a34a}
+    .toast.error{border-left-color:#dc2626}
+    .toast .uil{font-size:18px}
+    @keyframes toastIn{to{opacity:1;transform:none}}
   </style>
 </head>
 <body>
@@ -179,6 +190,7 @@
       <div class="brand">PasteMini</div>
       <div class="spacer"></div>
       <a id="navStatus" class="navlink" href="#" title="Cek Status Server">Cek Status Server</a>
+      <button id="navCreateNew" class="btn" style="display:none;margin-left:12px">Create New</button>
       <button id="navHome" class="btn ghost" style="margin-left:12px">Home</button>
     </nav>
   </header>
@@ -211,8 +223,8 @@
 
       <div class="row">
         <input id="urlView" class="input grow" value="https://example.com/?n=demo" readonly />
-        <button id="btnShareWA" class="icon-inline" title="Bagikan ke WhatsApp" aria-label="Share to WhatsApp">↗</button>
-        <button id="btnCopyURL" class="icon-inline" title="Salin URL" aria-label="Copy URL">⎘</button>
+        <button id="btnShareWA" class="icon-inline" title="Bagikan ke WhatsApp" aria-label="Share to WhatsApp"><i class="uil uil-share"></i></button>
+        <button id="btnCopyURL" class="icon-inline" title="Salin URL" aria-label="Copy URL"><i class="uil uil-copy"></i></button>
         <button id="editSlug" class="icon-btn" title="Edit custom URL">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
         </button>
@@ -284,8 +296,22 @@
   // ================ HELPERS ================
   const $ = sel => document.querySelector(sel);
   const byId = id => document.getElementById(id);
-  const status = msg => { byId('status').textContent = msg; };
-  const toast = (msg) => { status(msg); setTimeout(()=>status('Ready'), 1600); };
+  const status = msg => { const s=byId('status'); if (s) s.textContent = msg; };
+  function makeToast(msg, type='info'){
+    const host = byId('toast'); if (!host) return; const t = document.createElement('div');
+    t.className = `toast ${type}`; const icon = type==='success'?'check-circle':(type==='error'?'times-circle':'info-circle');
+    t.innerHTML = `<i class="uil uil-${icon}"></i><span>${msg}</span>`;
+    host.appendChild(t);
+    setTimeout(()=>{ t.style.transition='opacity .2s ease, transform .2s ease'; t.style.opacity='0'; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(), 220); }, 2200);
+  }
+  function toast(msg, type){
+    status(msg);
+    if (!type){ const m = (msg||'').toLowerCase(); if (m.includes('gagal')||m.includes('error')) type='error'; else if (m.includes('tersimpan')||m.includes('dimuat')||m.includes('terhapus')) type='success'; else type='info'; }
+    makeToast(msg, type);
+    setTimeout(()=>status('Ready'), 1600);
+  }
+  function showBusy(text='Memproses…'){ const b=byId('busy'); if (!b) return; byId('busyText').textContent=text; b.style.display='flex'; }
+  function hideBusy(){ const b=byId('busy'); if (!b) return; b.style.display='none'; }
   const copy = async (txt) => { try { await navigator.clipboard.writeText(txt); toast('Disalin'); } catch(e){ console.warn(e); } };
   const makeId = (len=8) => { const arr = new Uint8Array(len); crypto.getRandomValues(arr); return Array.from(arr, b => (b % 36).toString(36)).join(''); };
   const slugify = s => (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
@@ -359,6 +385,26 @@
 
   // ============== SHEET I/O ==============
   async function saveToSheet(){
+    if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi','error'); return; }
+    if (!navigator.onLine){ toast('Offline: tidak bisa simpan ke Sheet','error'); return; }
+    showBusy('Menyimpan ke Sheet…');
+    try{
+      if (!currentId) currentId = makeId();
+      if (!currentSlug) currentSlug = slugify(byId('title').value) || makeId();
+      byId('slug').value = currentSlug; byId('slug').dataset.manual = '1';
+      const note = buildNoteObj();
+      const fullLink = buildFullLink();
+      const code = currentSlug; // sheet code otomatis mengikuti URL (slug)
+      const { ok, data, error } = await requestJSON(SHEET_API, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple request → tanpa preflight CORS
+        body: JSON.stringify({ action:'save', code, title: note.title||'', text: getPlainText()||'', link: fullLink })
+      });
+      if (!ok){ console.warn(error); toast('Gagal simpan Sheet: ' + error, 'error'); return; }
+      if (data && data.ok){ toast('Tersimpan (Sheet)','success'); updateURLView(); }
+      else { toast('Gagal simpan Sheet','error'); }
+    } finally { hideBusy(); }
+  }{
     if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi'); return; }
     if (!navigator.onLine){ toast('Offline: tidak bisa simpan ke Sheet'); return; }
     if (!currentId) currentId = makeId();
@@ -378,6 +424,23 @@
   }
 
   async function deleteFromSheet(){
+    if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi','error'); return; }
+    if (!navigator.onLine){ toast('Offline: tidak bisa delete di Sheet','error'); return; }
+    const code = currentSlug || slugify(byId('title').value);
+    if (!code){ toast('Belum ada slug/kode','error'); return; }
+    const okGo = confirm(`Hapus catatan di Sheet dengan kode "${code}"?`);
+    if (!okGo) return;
+    showBusy('Menghapus di Sheet…');
+    try{
+      const { ok, data, error } = await requestJSON(SHEET_API, {
+        method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'delete', code })
+      });
+      if (!ok){ console.warn(error); toast('Gagal delete Sheet: ' + error, 'error'); return; }
+      if (data && data.ok){ toast('Terhapus di Sheet','success'); clearEditor(); showHome(); }
+      else { toast(data && data.error ? `Gagal delete: ${data.error}` : 'Gagal delete Sheet','error'); }
+    } finally { hideBusy(); }
+  }{
     if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi'); return; }
     if (!navigator.onLine){ toast('Offline: tidak bisa delete di Sheet'); return; }
     const code = currentSlug || slugify(byId('title').value);
@@ -394,6 +457,20 @@
   }
 
   async function loadFromSheet(code){
+    if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi','error'); return; }
+    if (!navigator.onLine){ toast('Offline: tidak bisa load dari Sheet','error'); return; }
+    showBusy('Memuat dari Sheet…');
+    try{
+      const { ok, data, error } = await requestJSON(`${SHEET_API}?action=get&code=${encodeURIComponent(code)}`);
+      if (!ok){ console.warn(error); toast('Gagal load Sheet: ' + error, 'error'); return; }
+      if (data && data.ok && data.row){
+        const txt = (data.row.text != null) ? String(data.row.text) : (data.row.payload ? (safeDecodePayload(data.row.payload).content||'') : '');
+        currentSlug = code; // sheet code mengikuti URL
+        setFromNoteObj({ id: makeId(), title: data.row.title||'', content: txt, mode: 'text', slug: currentSlug, updatedAt: Date.now() });
+        toast('Dimuat (Sheet)','success'); hideModal();
+      } else { toast('Kode tidak ditemukan','error'); }
+    } finally { hideBusy(); }
+  }{
     if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi'); return; }
     if (!navigator.onLine){ toast('Offline: tidak bisa load dari Sheet'); return; }
     const { ok, data, error } = await requestJSON(`${SHEET_API}?action=get&code=${encodeURIComponent(code)}`);
@@ -438,8 +515,8 @@
   function importFromCode(code){ try{ const note = dec(code); setFromNoteObj({ id: note.id || makeId(), title: note.title || '', content: note.content || '', mode: note.mode || 'text', slug: slugify(note.slug || ''), updatedAt: Date.now() }); toast('Kode dimuat'); }catch(err){ console.error(err); toast('Kode tidak valid'); } }
 
   // ============== UI FLOW ==============
-  function showHome(){ byId('home').style.display='grid'; byId('editor').style.display='none'; }
-  function showEditor(){ byId('home').style.display='none'; byId('editor').style.display='grid'; }
+  function showHome(){ byId('home').style.display='grid'; byId('editor').style.display='none'; const c=byId('navCreateNew'); if(c) c.style.display='none'; }
+  function showEditor(){ byId('home').style.display='none'; byId('editor').style.display='grid'; const c=byId('navCreateNew'); if(c) c.style.display='inline-block'; }
   function createNew(){ clearEditor(); currentId = makeId(); showEditor(); updateShareArtifacts(); }
   function showModal(){ byId('modal').style.display='flex'; byId('inpCode').value=''; byId('inpCode').focus(); }
   function hideModal(){ byId('modal').style.display='none'; }
@@ -484,7 +561,7 @@
 
   // ============== EVENTS ==============
   // Nav / Home
-  byId('navHome').onclick = showHome;
+  byId('navHome').onclick = showHome; byId('navCreateNew').onclick = createNew;
   byId('homeCreate').onclick = createNew;
   byId('homeLoad').onclick = showModal;
   byId('navStatus').onclick = (e)=>{ e.preventDefault(); showTests(); };
@@ -609,5 +686,9 @@
   toggleModeUI(); bootFromURL();
 })();
 </script>
+<div id="busy" class="busy" aria-hidden="true">
+  <div class="busy-box"><i class="uil uil-spinner-alt"></i><span id="busyText">Memproses…</span></div>
+</div>
+<div id="toast" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

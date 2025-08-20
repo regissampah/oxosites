@@ -448,6 +448,7 @@
 
   let cm = null;
   function ensureCodeMirror(){
+    // Inisialisasi sekali; refresh jika sudah ada
     if (cm){ setTimeout(()=>cm.refresh(), 0); return cm; }
     if (!window.CodeMirror){
       // Library belum siap, coba lagi sebentar
@@ -455,19 +456,19 @@
       return null;
     }
     cm = CodeMirror(document.getElementById('cmHost'), {
-      value: '', mode:'htmlmixed', theme:'neo', lineNumbers:true, lineWrapping:true
+      value: '',
+      mode: 'htmlmixed',
+      theme: 'neo',
+      lineNumbers: true,
+      lineWrapping: true
     });
-    window.cm = cm; // ekspos ke window agar test & debug bisa mendeteksi
+    // Ekspos untuk tes/debug
+    window.cm = cm;
     cm.on('change', updateShareArtifacts);
     setTimeout(()=>cm.refresh(), 0);
     return cm;
-  });
-      cm.on('change', updateShareArtifacts);
-      setTimeout(()=>cm.refresh(), 0);
-    } else {
-      setTimeout(()=>cm.refresh(), 0);
-    }
   }
+
   function toggleModeUI(){
     const mode = byId('mode').value; const rteWrap = byId('rteWrap'); const cmWrap = byId('cmWrap'); const langSel = byId('lang');
     if (mode==='code'){

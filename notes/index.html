@@ -448,8 +448,20 @@
 
   let cm = null;
   function ensureCodeMirror(){
-    if (!cm){
-      cm = CodeMirror(document.getElementById('cmHost'), { value: '', mode:'htmlmixed', theme:'neo', lineNumbers:true, lineWrapping:true });
+    if (cm){ setTimeout(()=>cm.refresh(), 0); return cm; }
+    if (!window.CodeMirror){
+      // Library belum siap, coba lagi sebentar
+      setTimeout(ensureCodeMirror, 120);
+      return null;
+    }
+    cm = CodeMirror(document.getElementById('cmHost'), {
+      value: '', mode:'htmlmixed', theme:'neo', lineNumbers:true, lineWrapping:true
+    });
+    window.cm = cm; // ekspos ke window agar test & debug bisa mendeteksi
+    cm.on('change', updateShareArtifacts);
+    setTimeout(()=>cm.refresh(), 0);
+    return cm;
+  });
       cm.on('change', updateShareArtifacts);
       setTimeout(()=>cm.refresh(), 0);
     } else {
@@ -544,8 +556,13 @@
     }catch(e){ add('Live link', false, e.message); }
 
     // T3: Coding editor (CodeMirror) bisa diketik
-    try{ byId('mode').value='code'; toggleModeUI(); if (window.cm){ cm.setValue('<h1>Hi</h1>'); } const ok = (window.cm ? cm.getValue() : '').includes('<h1>Hi'); add('Coding editor input', ok); }
-    catch(e){ add('Coding editor input', false, e.message); }
+    try{
+      byId('mode').value='code'; toggleModeUI();
+      let tries=0; while(!window.cm && tries<30){ await new Promise(r=>setTimeout(r,100)); tries++; }
+      if (window.cm){ cm.setValue('<h1>Hi</h1>'); }
+      const ok = (window.cm ? cm.getValue() : '').includes('<h1>Hi');
+      add('Coding editor input', ok, window.cm?'':'CodeMirror belum siap');
+    }catch(e){ add('Coding editor input', false, e.message); }
 
     // T3b: RTE → Plain text extraction (bukan HTML)
     try{

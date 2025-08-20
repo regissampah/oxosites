@@ -315,7 +315,7 @@
   const copy = async (txt) => { try { await navigator.clipboard.writeText(txt); toast('Disalin'); } catch(e){ console.warn(e); } };
   const makeId = (len=8) => { const arr = new Uint8Array(len); crypto.getRandomValues(arr); return Array.from(arr, b => (b % 36).toString(36)).join(''); };
   const makeCode5 = () => { const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; const arr=new Uint32Array(5); crypto.getRandomValues(arr); let out=''; for(let i=0;i<5;i++){ out += chars[arr[i]%chars.length]; } return out; };
-  const slugify = s => (s||'').trim().replace(/[^A-Za-z0-9]+/g,'-').replace(/(^-|const slugify = s => (s||'').trim().replace(/[^A-Za-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  const slugify = s => (s||'').trim().replace(/[^A-Za-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
   const enc = (obj) => LZString.compressToEncodedURIComponent(JSON.stringify(obj));
   const dec = (str) => JSON.parse(LZString.decompressFromEncodedURIComponent(str));
   // build JSON payload (disimpan di Sheet) — lebih mudah dibaca & aman
@@ -428,6 +428,19 @@
 
   async function loadFromSheet(code){
     if (!isSheetConfigured()){ toast('SHEET_API belum dikonfigurasi','error'); return; }
+    if (!navigator.onLine){ toast('Offline: tidak bisa load dari Sheet','error'); return; }
+    showBusy('Memuat dari Sheet…');
+    try{
+      const { ok, data, error } = await requestJSON(`${SHEET_API}?action=get&code=${encodeURIComponent(code)}`);
+      if (!ok){ console.warn(error); toast('Gagal load Sheet: ' + error, 'error'); return; }
+      if (data && data.ok && data.row){
+        const txt = (data.row.text != null) ? String(data.row.text) : (data.row.payload ? (safeDecodePayload(data.row.payload).content||'') : '');
+        currentSlug = code; // sheet code mengikuti URL
+        setFromNoteObj({ id: makeId(), title: data.row.title||'', content: txt, mode: 'text', slug: currentSlug, updatedAt: Date.now() });
+        toast('Dimuat (Sheet)','success'); hideModal();
+      } else { toast('Kode tidak ditemukan','error'); }
+    } finally { hideBusy(); }
+  }
 
   // ============== HELPERS ==============
   function buildNoteObj(){ return { id: currentId || makeId(), title: byId('title').value || '', content: getEditorValue() || '', mode: byId('mode').value || 'text', slug: currentSlug || '', updatedAt: Date.now() }; }

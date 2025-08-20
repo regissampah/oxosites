@@ -90,6 +90,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
+  <!-- CodeMirror (HTML code editor for Coding mode) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/neo.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/xml/xml.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/javascript/javascript.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/css/css.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
   <!-- LZ-String untuk kompresi -->
   <script defer src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 
@@ -154,17 +163,23 @@
     th,td{border:1px solid var(--ring);padding:8px;text-align:left}
     .pass{color:#16a34a;font-weight:700}
     .fail{color:#dc2626;font-weight:700}
+  .navlink{color:var(--muted);text-decoration:none;font-weight:600}
+    .navlink:hover{color:var(--text);text-decoration:underline}
+    #cmHost{height:360px;border:1px solid var(--ring);border-radius:10px;overflow:hidden;background:#fff}
+    .CodeMirror{height:100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    .urlRow{display:inline-flex;gap:8px;align-items:center;max-width:100%;overflow:hidden;white-space:nowrap}
+    .urlRow a{max-width:70vw;overflow:hidden;text-overflow:ellipsis;display:inline-block}
+    .icon-inline{appearance:none;border:1px solid var(--ring);background:#fff;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer}
+    .icon-inline:hover{transform:translateY(-1px)}
   </style>
 </head>
 <body>
   <header>
     <nav class="nav">
       <div class="brand">PasteMini</div>
-      <button id="navHome" class="btn ghost">Home</button>
       <div class="spacer"></div>
-      <button id="navCreate" class="btn">Create</button>
-      <button id="navLoad" class="btn ghost">Load</button>
-      <button id="navTest" class="btn ghost" title="Jalankan pengujian">Tests</button>
+      <a id="navStatus" class="navlink" href="#" title="Cek Status Server">Cek Status Server</a>
+      <button id="navHome" class="btn ghost" style="margin-left:12px">Home</button>
     </nav>
   </header>
 
@@ -222,12 +237,11 @@
         <div id="rte" class="rte" contenteditable="true" spellcheck="false"></div>
       </div>
 
-      <!-- Coding (textarea sederhana) -->
-      <div id="codeWrap">
-        <textarea id="codeBox" class="codebox" spellcheck="false" placeholder="/* Tulis/Tempel kode di sini (HTML, JS, Markdown, dll) */"></textarea>
+      <!-- Coding (CodeMirror HTML editor) -->
+      <div id="cmWrap" style="display:none">
+        <div id="cmHost"></div>
       </div>
 
-      <!-- Actions di bawah kotak teks -->
       <div class="row" id="actionRow">
         <div class="spacer"></div>
         <button id="btnSaveSheet" class="btn">Save to Sheet</button>
@@ -238,12 +252,15 @@
       <!-- Share area: WA + Copy URL + Link tampil -->
       <div class="meta">
         <span id="status">Ready</span>
-        <span>
-          <a id="shareWA" href="https://wa.me/?text=https%3A%2F%2Fexample.com%2F%3Fn%3Ddemo" target="_blank" rel="noopener">Share WA</a>
-          ·
-          <a id="shareCopy" href="#">Copy URL</a>
+        <span class="urlRow">
+          <a id="shareUrl" href="https://example.com/?n=demo" target="_blank" rel="noopener">https://example.com/?n=demo</a>
+          <button id="btnShareWA" class="icon-inline" title="Bagikan ke WhatsApp" aria-label="Share to WhatsApp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-6a2 2 0 0 0-2 2v0"/><path d="M8 6H6a2 2 0 0 0-2 2v12l4-4h8a2 2 0 0 0 2-2V8"/></svg>
+          </button>
+          <button id="btnCopyURL" class="icon-inline" title="Salin URL" aria-label="Copy URL">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
         </span>
-        <span>Link: <a id="shareUrl" href="https://example.com/?n=demo" target="_blank" rel="noopener">https://example.com/?n=demo</a></span>
       </div>
     </section>
   </main>
@@ -263,7 +280,7 @@
   <!-- Modal Tests -->
   <div id="testModal" class="modal" role="dialog" aria-modal="true">
     <div class="dialog">
-      <h3>Self Tests</h3>
+      <h3>Cek Status Server</h3>
       <div id="testBody">Menjalankan tes…</div>
       <div class="row" style="justify-content:end">
         <button id="btnCloseTests" class="btn">Tutup</button>
@@ -274,7 +291,7 @@
 <script>
 (function(){
   // ================= CONFIG =================
-  const SHEET_API = 'https://script.google.com/macros/s/AKfycbznKVVhzvHiZsP4jAarVBUMznYYHR17WNSeOnyVQa838PxwUeZnRfHTqAafrhNMSQQY/exec'; // GANTI dengan URL Web App milikmu
+  const SHEET_API = 'https://script.google.com/macros/s/AKfycbwpJSOETKRAO7uh4veLfAUppJwOjpbpj0FoPt7uksb4v0rZJIHGWoDDxaORqTYFQS0y/exec'; // GANTI dengan URL Web App milikmu
   const SHEET_TIMEOUT_MS = 8000;
 
   // ================ HELPERS ================
@@ -337,8 +354,16 @@
   // ============== EDITOR I/O ==============
   function getEditorValue(){
     const mode = byId('mode').value;
-    if (mode === 'code') return byId('codeBox').value;
-    return byId('rte').innerText; // simpan HTML saat rich text
+    if (mode === 'code' && cm) return cm.getValue();
+    return byId('rte').innerText;
+  }
+  function setEditorValue(val){
+    const mode = byId('mode').value;
+    if (mode === 'code' && cm) cm.setValue(val||'');
+    else byId('rte').innerText = val||'';
+  }
+  function getPlainText(){
+    return (byId('mode').value === 'code' && cm) ? cm.getValue() : byId('rte').innerText;
   }
   function setEditorValue(val){
     const mode = byId('mode').value;
@@ -407,16 +432,24 @@
   function clearEditor(){ currentId=null; currentSlug=''; byId('title').value=''; byId('mode').value='text'; toggleModeUI(); setEditorValue(''); }
 
   // URL/Slug & Share
+  function getBase(){
+    const o = location.origin || '';
+    if (!o || /nullsrcdoc|^null$/.test(o)) return 'https://example.com';
+    return o;
+  }
   function buildFullLink(){
-    const base = location.origin + location.pathname;
+    const base = getBase() + location.pathname;
     const slug = currentSlug ? `?n=${encodeURIComponent(currentSlug)}` : '?n=demo';
     return base + slug;
   }
   function updateURLView(){
     const full = buildFullLink();
     byId('urlView').textContent = full;
-    byId('shareUrl').href = full; byId('shareUrl').textContent = full;
-    byId('shareCopy').onclick = (e)=>{ e.preventDefault(); copy(full); };
+    const a = byId('shareUrl'); a.href = full; a.textContent = full;
+    const openWA = ()=> window.open(`https://wa.me/?text=${encodeURIComponent(full)}`, '_blank');
+    byId('btnShareWA').onclick = (e)=>{ e.preventDefault(); openWA(); };
+    byId('btnCopyURL').onclick = (e)=>{ e.preventDefault(); copy(full); };
+  };
     byId('shareWA').href = `https://wa.me/?text=${encodeURIComponent(full)}`;
   }
   function autoSlugFromTitle(){ const t = byId('title').value; if (!byId('slug').dataset.manual){ currentSlug = slugify(t); byId('slug').value = currentSlug; updateURLView(); } }
@@ -434,23 +467,36 @@
   function showTests(){ byId('testModal').style.display='flex'; runSelfTests(); }
   function hideTests(){ byId('testModal').style.display='none'; }
 
-  function toggleModeUI(){
-    const mode = byId('mode').value; const rteWrap = byId('rteWrap'); const codeWrap = byId('codeWrap'); const langSel = byId('lang');
-    if (mode==='code'){
-      rteWrap.style.display='block'; // toolbar tetap terlihat (boleh dipakai buat copy text)
-      codeWrap.style.display='block'; langSel.style.display='inline-block';
-      byId('codeBox').focus();
-      if (!byId('codeBox').value) byId('codeBox').value = byId('rte').innerText || '';
+  let cm = null;
+  function ensureCodeMirror(){
+    if (!cm){
+      cm = CodeMirror(document.getElementById('cmHost'), { value: '', mode:'htmlmixed', theme:'neo', lineNumbers:true, lineWrapping:true });
+      cm.on('change', updateShareArtifacts);
+      setTimeout(()=>cm.refresh(), 0);
     } else {
-      codeWrap.style.display='none'; langSel.style.display='none';
-      if (byId('codeBox').value) byId('rte').innerText = byId('codeBox').value;
+      setTimeout(()=>cm.refresh(), 0);
+    }
+  }
+  function toggleModeUI(){
+    const mode = byId('mode').value; const rteWrap = byId('rteWrap'); const cmWrap = byId('cmWrap'); const langSel = byId('lang');
+    if (mode==='code'){
+      rteWrap.style.display='none'; cmWrap.style.display='block'; langSel.style.display='none';
+      ensureCodeMirror();
+      if (cm && !cm.getValue()) cm.setValue(byId('rte').innerText || '');
+    } else {
+      cmWrap.style.display='none'; langSel.style.display='none';
+      if (cm) byId('rte').innerText = cm.getValue();
+      rteWrap.style.display='block';
     }
   }
 
   // ============== EVENTS ==============
   // Nav / Home
-  byId('navHome').onclick = showHome; byId('homeCreate').onclick = createNew; byId('navCreate').onclick = createNew;
-  byId('homeLoad').onclick = showModal; byId('navLoad').onclick = showModal; byId('navTest').onclick = showTests; byId('btnCloseTests').onclick = hideTests;
+  byId('navHome').onclick = showHome;
+  byId('homeCreate').onclick = createNew;
+  byId('homeLoad').onclick = showModal;
+  byId('navStatus').onclick = (e)=>{ e.preventDefault(); showTests(); };
+  byId('btnCloseTests').onclick = hideTests;
 
   // Modal
   byId('btnCancel').onclick = hideModal; byId('btnLoadSheet').onclick = ()=>{ const code=byId('inpCode').value.trim(); if (code) loadFromSheet(code); };

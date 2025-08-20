@@ -13,6 +13,8 @@
        - Salin URL Web App dan ganti konstanta SHEET_API di bawah.
 
     ----- BEGIN APPS SCRIPT -----
+    // NOTE: Frontend mengirim POST dengan Content-Type: text/plain (bukan JSON)
+    // agar TIDAK memicu CORS preflight. Body berisi string JSON pada e.postData.contents.
     const SHEET_NAME = 'Sheet1';
     function _json(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
     function _findRowByCode(sh, code){ const vals = sh.getDataRange().getValues(); return vals.findIndex(r => (r[0]||'').toString().trim()===code); }
@@ -26,6 +28,18 @@
         const idx = _findRowByCode(sh, code);
         if (idx>-1){ const row = sh.getRange(idx+1,1,1,4).getValues()[0]; return _json({ok:true, row:{code:row[0], title:row[1], payload:row[2], updatedAt:row[3]}}); }
         return _json({ok:false, error:'not_found'});
+      }
+      // (opsional) fallback GET save: /exec?action=save&code=...&payload=...
+      if (act==='save'){
+        const code = (e.parameter.code||'').trim();
+        const title = e.parameter.title||'';
+        const payload = e.parameter.payload||'';
+        if (!code || !payload) return _json({ok:false, error:'missing_fields'});
+        const ts = new Date();
+        const idx = _findRowByCode(sh, code);
+        if (idx>-1) sh.getRange(idx+1,1,1,4).setValues([[code,title,payload,ts]]);
+        else sh.appendRow([code,title,payload,ts]);
+        return _json({ok:true, code});
       }
       return _json({ok:false, error:'invalid_action'});
     }
@@ -252,6 +266,29 @@
     const ac = new AbortController();
     const id = setTimeout(()=>ac.abort(), SHEET_TIMEOUT_MS);
     try{
+      const res = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow', ...options, signal: ac.signal });
+      clearTimeout(id);
+      const ct = (res.headers && res.headers.get('content-type')) || '';
+      if (!res.ok){
+        const text = await res.text().catch(()=>res.statusText);
+        return { ok:false, error:`HTTP ${res.status} ${res.statusText}${ct?` (${ct})`:''}: ${text.slice(0,200)}` };
+      }
+      if (ct.includes('application/json')){
+        const data = await res.json();
+        return { ok:true, data };
+      } else {
+        const text = await res.text().catch(()=>'(no body)');
+        return { ok:false, error:`Unexpected response (content-type: ${ct||'unknown'}). Kemungkinan Web App perlu akses "Anyone" / login page.`, body:text.slice(0,200) };
+      }
+    }catch(err){
+      clearTimeout(id);
+      if (err.name === 'AbortError') return { ok:false, error:'Timeout – server tidak merespons' };
+      return { ok:false, error: (err && err.message) || 'Failed to fetch' };
+    }
+  }){
+    const ac = new AbortController();
+    const id = setTimeout(()=>ac.abort(), SHEET_TIMEOUT_MS);
+    try{
       const res = await fetch(url, { ...options, signal: ac.signal });
       clearTimeout(id);
       if (!res.ok){
@@ -299,7 +336,8 @@
     const payload = enc({ id: note.id, title: note.title, content: note.content, mode: note.mode, slug: note.slug });
     const code = currentSlug; // sheet code otomatis mengikuti URL (slug)
     const { ok, data, error } = await requestJSON(SHEET_API, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple request → tanpa preflight CORS
       body: JSON.stringify({ action:'save', code, title: note.title||'', payload })
     });
     if (!ok){ console.warn(error); toast('Gagal simpan Sheet: ' + error); return; }

@@ -260,6 +260,18 @@
   const slugify = s => (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
   const enc = (obj) => LZString.compressToEncodedURIComponent(JSON.stringify(obj));
   const dec = (str) => JSON.parse(LZString.decompressFromEncodedURIComponent(str));
+  // build JSON payload (disimpan di Sheet) — lebih mudah dibaca & aman
+  const buildPayload = (note) => JSON.stringify({ id: note.id, title: note.title, content: note.content, mode: note.mode, slug: note.slug });
+  // decoder robust: dukung JSON polos & LZString lawas
+  const safeDecodePayload = (p) => {
+    if (!p) return null;
+    // 1) coba JSON langsung
+    try { const j = JSON.parse(p); if (j && typeof j==='object') return j; } catch(_){ }
+    // 2) coba LZ-String (kompres lama)
+    try { const j = dec(p); if (j && typeof j==='object') return j; } catch(_){ }
+    // 3) fallback: p dianggap teks biasa
+    return { id: makeId(), title: '(untitled)', content: String(p), mode: 'text', slug: currentSlug };
+  };
   const isSheetConfigured = () => SHEET_API && !SHEET_API.includes('PASTE_WEB_APP_URL');
 
   async function requestJSON(url, options={}){
@@ -318,7 +330,7 @@
     if (!currentSlug) currentSlug = slugify(byId('title').value) || makeId();
     byId('slug').value = currentSlug; byId('slug').dataset.manual = '1';
     const note = buildNoteObj();
-    const payload = enc({ id: note.id, title: note.title, content: note.content, mode: note.mode, slug: note.slug });
+    const payload = buildPayload(note);
     const code = currentSlug; // sheet code otomatis mengikuti URL (slug)
     const { ok, data, error } = await requestJSON(SHEET_API, {
       method:'POST',
@@ -336,7 +348,7 @@
     const { ok, data, error } = await requestJSON(`${SHEET_API}?action=get&code=${encodeURIComponent(code)}`);
     if (!ok){ console.warn(error); toast('Gagal load Sheet: ' + error); return; }
     if (data && data.ok && data.row && data.row.payload){
-      const obj = dec(data.row.payload);
+      const obj = safeDecodePayload(data.row.payload);
       currentSlug = code; // sheet code mengikuti URL
       setFromNoteObj({ id: obj.id, title: obj.title, content: obj.content, mode: obj.mode, slug: currentSlug, updatedAt: Date.now() });
       toast('Dimuat (Sheet)'); hideModal();
@@ -456,6 +468,20 @@
     catch(e){ add('Coding textarea input', false, e.message); }
 
     // T4: Sheet config present
+    // T6: Decoder mendukung JSON polos (format simpan terbaru)
+    try{
+      const payload = buildPayload({ id:'1', title:'t', content:'hello', mode:'text', slug:'s' });
+      const obj = safeDecodePayload(payload);
+      add('Decode JSON payload', obj && obj.content==='hello');
+    }catch(e){ add('Decode JSON payload', false, e.message); }
+
+    // T7: Decoder fallback LZ kompatibel (format lama)
+    try{
+      const lz = enc({ id:'1', title:'t', content:'world', mode:'text', slug:'s' });
+      const obj = safeDecodePayload(lz);
+      add('Decode LZ payload', obj && obj.content==='world');
+    }catch(e){ add('Decode LZ payload', false, e.message); }
+
     add('Sheet API configured', isSheetConfigured());
 
     // T5: Sheet ping (opsional jika configured)

@@ -262,17 +262,7 @@
   const dec = (str) => JSON.parse(LZString.decompressFromEncodedURIComponent(str));
   const isSheetConfigured = () => SHEET_API && !SHEET_API.includes('PASTE_WEB_APP_URL');
 
-  async function requestJSON(url, options={}){
-    const ac = new AbortController();
-    const id = setTimeout(()=>ac.abort(), SHEET_TIMEOUT_MS);
-    try{
-      const res = await fetch(url, { mode:'cors', credentials:'omit', redirect:'follow', ...options, signal: ac.signal });
-      clearTimeout(id);
-      const ct = (res.headers && res.headers.get('content-type')) || '';
-      if (!res.ok){
-        const text = await res.text().catch(()=>res.statusText);
-        return { ok:false, error:`HTTP ${res.status} ${res.statusText}${ct?` (${ct})`:''}: ${text.slice(0,200)}` };
-      }
+  async function requestJSON(url, options={
       if (ct.includes('application/json')){
         const data = await res.json();
         return { ok:true, data };
@@ -453,6 +443,10 @@
   async function runSelfTests(){
     const rows = [];
     function add(name, pass, note=''){ rows.push(`<tr><td>${name}</td><td class="${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</td><td>${note||''}</td></tr>`); }
+
+    // T0: Create button opens editor
+    try{ showHome(); byId('homeCreate').click(); const ok = getComputedStyle(byId('editor')).display !== 'none'; add('Create button opens editor', ok); }
+    catch(e){ add('Create button opens editor', false, e.message); }
 
     // T1: LZ roundtrip
     try{ const obj={a:1,b:'x'}; const z=enc(obj); const back=dec(z); add('LZ roundtrip', JSON.stringify(obj)===JSON.stringify(back)); }

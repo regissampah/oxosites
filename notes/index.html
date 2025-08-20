@@ -45,9 +45,19 @@
       const body = JSON.parse(e.postData.contents||'{}');
       const action = (body.action||'save').toLowerCase();
       const code = (body.code||'').trim();
-      const title = body.title||'';
-      const text = body.text||'';
+      let title = body.title||'';
+      let text = body.text||'';
       const link = body.link||'';
+      // Guard untuk klien lama yang mengirim JSON di field "text" (berisi {id,title,content,...})
+      if (text && typeof text === 'string' && text.trim().charAt(0) === '{'){
+        try{
+          const parsed = JSON.parse(text);
+          if (parsed && typeof parsed === 'object'){
+            if (!title && parsed.title) title = String(parsed.title);
+            if (parsed.content != null) text = String(parsed.content);
+          }
+        }catch(err){ /* ignore */ }
+      }
       if (!code) return _json({ok:false, error:'missing_code'});
       const now = new Date();
       const idx = _findRowByCode(sh, code);
@@ -264,7 +274,7 @@
 <script>
 (function(){
   // ================= CONFIG =================
-  const SHEET_API = 'https://script.google.com/macros/s/AKfycbyNsNZiyBfkzW40yIli2c_Qh5k4GKl4NhgF0ltm9HVMqz7au4EGoQZ-3-qbF3begPpD/exec'; // GANTI dengan URL Web App milikmu
+  const SHEET_API = 'https://script.google.com/macros/s/AKfycbznKVVhzvHiZsP4jAarVBUMznYYHR17WNSeOnyVQa838PxwUeZnRfHTqAafrhNMSQQY/exec'; // GANTI dengan URL Web App milikmu
   const SHEET_TIMEOUT_MS = 8000;
 
   // ================ HELPERS ================
@@ -328,12 +338,15 @@
   function getEditorValue(){
     const mode = byId('mode').value;
     if (mode === 'code') return byId('codeBox').value;
-    return byId('rte').innerHTML; // simpan HTML saat rich text
+    return byId('rte').innerText; // simpan HTML saat rich text
   }
   function setEditorValue(val){
     const mode = byId('mode').value;
     if (mode === 'code') byId('codeBox').value = val||'';
-    else byId('rte').innerHTML = val||'';
+    else byId('rte').innerText = val||'';
+  }
+  function getPlainText(){
+    return (byId('mode').value === 'code') ? byId('codeBox').value : byId('rte').innerText;
   }
 
   // Rich Text actions
@@ -352,7 +365,7 @@
     const { ok, data, error } = await requestJSON(SHEET_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple request → tanpa preflight CORS
-      body: JSON.stringify({ action:'save', code, title: note.title||'', text: note.content||'', link: fullLink })
+      body: JSON.stringify({ action:'save', code, title: note.title||'', text: getPlainText()||'', link: fullLink })
     });
     if (!ok){ console.warn(error); toast('Gagal simpan Sheet: ' + error); return; }
     if (data && data.ok){ toast('Tersimpan (Sheet)'); updateURLView(); }
@@ -502,8 +515,16 @@
     catch(e){ add('Live link', false, e.message); }
 
     // T3: Coding textarea bisa diketik
-    try{ byId('mode').value='code'; toggleModeUI(); byId('codeBox').value='console.log(1)'; add('Coding textarea input', byId('codeBox').value.includes('console.log')); }
-    catch(e){ add('Coding textarea input', false, e.message); }
+    try{ byId('mode').value='code'; toggleModeUI(); byId('codeBox').value='console.log(1)'; add('Coding textarea input', byId('codeBox').value.includes('console.log'));
+    }catch(e){ add('Coding textarea input', false, e.message); }
+
+    // T3b: RTE → Plain text extraction (bukan HTML)
+    try{
+      byId('mode').value='text'; toggleModeUI();
+      byId('rte').innerHTML = '<b>Hai</b> dunia';
+      const plain = getPlainText();
+      add('RTE -> Plain text', plain==='Hai dunia');
+    }catch(e){ add('RTE -> Plain text', false, e.message); }
 
     // T4: Sheet config present
     // T6: Decoder mendukung JSON polos (format simpan terbaru)

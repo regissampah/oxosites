@@ -186,7 +186,7 @@
     // ========================
 
     const KEY_STORAGE = 'gemini_api_key';
-    const BASE_DEFAULT = 'https://generativelanguage.googleapis.com/v1beta';
+    const BASE_DEFAULT = 'https://generativelanguage.googleapis.com/v1beta'; // default public REST base
     const BASE_KEY = 'gemini_api_base';
     const PROXY_KEY = 'cors_proxy_url';
 
@@ -321,8 +321,8 @@
         tries++;
         onTick?.(tries);
         log('Polling status…');
-        const url = wrapWithProxy(buildUrl('/operations/' + encodeURIComponent(name)));
-        const r = await safeFetchJson(url, { headers: { 'x-goog-api-key': apiKey } });
+        const url = wrapWithProxy(buildUrl('/operations/' + encodeURIComponent(name) + '?key=' + encodeURIComponent(apiKey)));
+        const r = await safeFetchJson(url, { method: 'GET' });
         if (!r.ok) { log(`Gagal polling (${r.isNetworkError ? 'network/CORS' : 'HTTP ' + r.status}).`); continue; }
         const jd = r.body;
         if (jd.done) {
@@ -374,10 +374,10 @@
         const parameters = { aspectRatio: aspect };
         if (negative) parameters.negativePrompt = negative;
 
-        const submitUrl = wrapWithProxy(buildUrl('/models/' + encodeURIComponent(model) + ':predictLongRunning'));
+        const submitUrl = wrapWithProxy(buildUrl('/models/' + encodeURIComponent(model) + ':predictLongRunning?key=' + encodeURIComponent(apiKey)));
         const r = await safeFetchJson(submitUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instances, parameters })
         });
 
@@ -512,6 +512,16 @@
         // cleanup
         setApiBase(BASE_DEFAULT); setProxy('');
       } catch { addTestLine(false, 'buildUrl()/wrapWithProxy() gagal'); }
+
+      // Test 5: operations URL menggunakan query ?key= (tanpa header custom)
+      total++;
+      try {
+        const apiKey = 'AIzA...dummy';
+        const name = 'models/veo-3.0-fast-generate-preview/operations/op123';
+        const url = buildUrl('/operations/' + encodeURIComponent(name) + '?key=' + encodeURIComponent(apiKey));
+        const ok = url.includes('/operations/') && url.includes('?key=');
+        addTestLine(ok, 'Operations polling memakai ?key= (hindari preflight CORS)'); if (ok) passed++;
+      } catch { addTestLine(false, 'Cek operations URL gagal'); }
 
       const s=$('testSummary'); if (s) s.textContent = `Hasil: ${passed}/${total} tes lulus`;
       console.log(`Self tests: ${passed}/${total} passed`);

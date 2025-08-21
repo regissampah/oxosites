@@ -1,0 +1,5 @@
+{
+  "name": "AI Image Replicator",
+  "description": "An advanced web application that uses Gemini to analyze an uploaded image, generate a descriptive prompt, and then recreate the image using an image generation model. Users can provide their own Gemini API key to power the replication process.",
+  "requestFramePermissions": []
+}

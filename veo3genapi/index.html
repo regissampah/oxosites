@@ -321,9 +321,20 @@
         tries++;
         onTick?.(tries);
         log('Polling status…');
-        const url = wrapWithProxy(buildUrl('/operations/' + encodeURIComponent(name) + '?key=' + encodeURIComponent(apiKey)));
+        // FIX: Google LRO returns name like "operations/xyz" atau
+        // "models/veo-3.0.../operations/abc". Endpoint yang benar adalah GET /v1beta/{name}
+        // BUKAN /v1beta/operations/{name}. Juga JANGAN pakai encodeURIComponent untuk '/'.
+        const opPath = (name.startsWith('operations/') || name.startsWith('models/'))
+          ? '/' + encodeURI(name) // keep slashes
+          : '/operations/' + encodeURIComponent(name);
+        const url = wrapWithProxy(buildUrl(opPath + '?key=' + encodeURIComponent(apiKey)));
         const r = await safeFetchJson(url, { method: 'GET' });
-        if (!r.ok) { log(`Gagal polling (${r.isNetworkError ? 'network/CORS' : 'HTTP ' + r.status}).`); continue; }
+        if (!r.ok) {
+          const reason = r.isNetworkError ? 'network/CORS' : ('HTTP ' + r.status);
+          if (r.status === 404) log('Polling 404: kemungkinan path salah (gandakan "operations/").');
+          log(`Gagal polling (${reason}).`);
+          continue;
+        }
         const jd = r.body;
         if (jd.done) {
           log('Operasi selesai.');
@@ -513,14 +524,19 @@
         setApiBase(BASE_DEFAULT); setProxy('');
       } catch { addTestLine(false, 'buildUrl()/wrapWithProxy() gagal'); }
 
-      // Test 5: operations URL menggunakan query ?key= (tanpa header custom)
+      // Test 5: operations URL menggunakan path {name} langsung (hindari gandakan segment)
       total++;
       try {
         const apiKey = 'AIzA...dummy';
-        const name = 'models/veo-3.0-fast-generate-preview/operations/op123';
-        const url = buildUrl('/operations/' + encodeURIComponent(name) + '?key=' + encodeURIComponent(apiKey));
-        const ok = url.includes('/operations/') && url.includes('?key=');
-        addTestLine(ok, 'Operations polling memakai ?key= (hindari preflight CORS)'); if (ok) passed++;
+        const name1 = 'operations/op123';
+        const url1 = buildUrl('/' + encodeURI(name1) + '?key=' + encodeURIComponent(apiKey));
+        const ok1 = url1.endsWith('/operations/op123?key=' + encodeURIComponent(apiKey));
+
+        const name2 = 'models/veo-3.0-fast-generate-preview/operations/op456';
+        const url2 = buildUrl('/' + encodeURI(name2) + '?key=' + encodeURIComponent(apiKey));
+        const ok2 = url2.includes('/models/veo-3.0-fast-generate-preview/operations/op456?key=');
+
+        addTestLine(ok1 && ok2, 'Polling memakai /{name}?key= (tanpa duplikasi /operations)'); if (ok1 && ok2) passed++;
       } catch { addTestLine(false, 'Cek operations URL gagal'); }
 
       const s=$('testSummary'); if (s) s.textContent = `Hasil: ${passed}/${total} tes lulus`;

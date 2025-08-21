@@ -4,99 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Microstock Prompt Generator • GitHub Pages</title>
-
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Inter Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <style>
     body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-
-    /* Message box (simple alert) */
-    .message-box-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.5);
-      display: none; align-items: center; justify-content: center; z-index: 1000;
-    }
-    .message-box { background: #fff; padding: 1.25rem; border-radius: .5rem; width: 320px; max-width: 90%;
-      box-shadow: 0 10px 30px rgba(0,0,0,.15); text-align: center; }
-    .message-box button {
-      margin-top: .75rem; padding: .5rem 1rem; border: 0; border-radius: .375rem; cursor: pointer;
-      background: #16a34a; color: #fff;
-    }
-
-    /* Modal (popup) for API form */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.5);
-      display: none; align-items: center; justify-content: center; z-index: 1100;
-    }
-    .modal {
-      background: #fff; width: 680px; max-width: 92vw; border-radius: 1rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,.2); overflow: hidden;
-      animation: pop .16s ease-out;
-    }
+    .message-box-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .message-box { background: #fff; padding: 1.25rem; border-radius: .5rem; width: 320px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,.15); text-align: center; }
+    .message-box button { margin-top: .75rem; padding: .5rem 1rem; border: 0; border-radius: .375rem; cursor: pointer; background: #16a34a; color: #fff; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 1100; }
+    .modal { background: #fff; width: 680px; max-width: 92vw; border-radius: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,.2); overflow: hidden; animation: pop .16s ease-out; }
     @keyframes pop { from { transform: translateY(8px); opacity:.95 } to { transform: translateY(0); opacity:1 } }
-
-    /* Radio animation */
-    .form-radio {
-      appearance: none; display: inline-block; height: 1.1rem; width: 1.1rem; border-radius: 9999px;
-      border: 2px solid #cbd5e0; background: #fff; transition: all .2s ease; cursor: pointer;
-    }
+    .form-radio { appearance: none; display: inline-block; height: 1.1rem; width: 1.1rem; border-radius: 9999px; border: 2px solid #cbd5e0; background: #fff; transition: all .2s ease; cursor: pointer; }
     .form-radio:checked { background: #10B981; border-color: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
     .form-radio:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
-
-    /* Search bar shell */
-    .search-shell { display:flex; gap:.75rem; align-items:center; justify-content:center; max-width: 1080px; margin: 0 auto .75rem; }
-    .search-bar-container {
-      background: #fff; padding: .75rem 1rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,.08);
-      display: flex; align-items: center; gap: .5rem; max-width: 980px; width: 100%;
-    }
-    .search-bar-container input, .search-bar-container select {
-      border: none; outline: none; box-shadow: none; padding: .5rem .75rem; border-radius: .375rem;
-    }
-    .search-bar-container select {
-      flex-shrink: 0; width: 170px; background: #f3f4f6; border-radius: 9999px;
-    }
+    .search-shell { display:flex; gap:.75rem; align-items:center; justify-content:center; max-width: 1160px; margin: 0 auto .75rem; flex-wrap: wrap; }
+    .search-bar-container { background: #fff; padding: .75rem 1rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,.08); display: flex; align-items: center; gap: .5rem; max-width: 980px; width: 100%; }
+    .search-bar-container input, .search-bar-container select { border: none; outline: none; box-shadow: none; padding: .5rem .75rem; border-radius: .375rem; }
+    .search-bar-container select { flex-shrink: 0; background: #f3f4f6; border-radius: 9999px; }
     .search-bar-container input { flex: 1; }
     .search-bar-container button { padding: .55rem 1.25rem; border-radius: 9999px; }
-
-    /* Additional options */
-    .additional-options-container {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: .9rem; font-size: .875rem;
-      max-width: 1080px; width: 100%; margin: .75rem auto 0;
-    }
-    .additional-options-item {
-      display: flex; align-items: center; gap: .5rem; background: #fff; padding: .5rem .9rem; border-radius: .75rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,.05);
-    }
-    .additional-options-item select, .additional-options-item input[type="number"] {
-      background: #fff; border: 1px solid #d1d5db; border-radius: .375rem; padding: .25rem .5rem; font-size: .875rem;
-    }
-
-    /* Tiny status dot inside the API button */
-    .status-dot {
-      width: .55rem; height: .55rem; border-radius: 9999px; display:inline-block; margin-left:.4rem;
-      box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset;
-    }
+    .additional-options-container { display: flex; flex-wrap: wrap; justify-content: center; gap: .9rem; font-size: .875rem; max-width: 1160px; width: 100%; margin: .75rem auto 0; }
+    .additional-options-item { display: flex; align-items: center; gap: .5rem; background: #fff; padding: .5rem .9rem; border-radius: .75rem; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+    .additional-options-item select, .additional-options-item input[type="number"] { background: #fff; border: 1px solid #d1d5db; border-radius: .375rem; padding: .25rem .5rem; font-size: .875rem; }
+    .status-dot { width: .55rem; height: .55rem; border-radius: 9999px; display:inline-block; margin-left:.4rem; box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 sm:p-8">
   <main class="w-full max-w-6xl mx-auto">
     <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-4">v.2 Microstock Prompt Generator</h1>
 
-    <!-- ==== Row: API Button (left) + Search Bar ==== -->
+    <!-- Row: API Button + Model + Search -->
     <div class="search-shell">
       <!-- API button -->
-      <button id="btnOpenApiModal"
-              class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full shrink-0">
+      <button id="btnOpenApiModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full shrink-0">
         Pasang API Gemini
         <span id="apiStatusDot" class="status-dot bg-rose-500"></span>
       </button>
 
+      <!-- Model selector -->
+      <div class="bg-white rounded-full px-3 py-2 shadow flex items-center gap-2">
+        <label for="modelName" class="text-sm text-gray-700 font-semibold">Model</label>
+        <select id="modelName" class="bg-gray-100 rounded-full px-3 py-2 text-sm text-gray-800">
+          <option value="gemini-2.0-flash" selected>gemini-2.0-flash</option>
+          <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash-preview-05-20</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+          <option value="__custom__">Custom…</option>
+        </select>
+        <input id="customModelInput" type="text" placeholder="Nama model kustom"
+               class="hidden border border-gray-300 rounded-full px-3 py-2 text-sm w-56"
+               autocomplete="off">
+      </div>
+
       <!-- Search bar -->
       <div class="search-bar-container">
-        <select id="imageStyle" onchange="toggleClayStyleOptions()" class="text-gray-700">
+        <select id="imageStyle" onchange="toggleClayStyleOptions()" class="text-gray-700 w-[170px]">
           <option value="">Gaya Gambar</option>
           <option value="fotografi realistis">Fotografi Realistis</option>
           <option value="ilustrasi digital">Ilustrasi Digital</option>
@@ -110,14 +72,13 @@
           <option value="3D Clay Style">3D Clay Style</option>
         </select>
         <input type="text" id="keywords" placeholder="Masukkan Kata Kunci..." class="text-gray-700">
-        <button id="btnGenerate"
-                class="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold transition duration-300 ease-in-out">
+        <button id="btnGenerate" class="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold transition duration-300 ease-in-out">
           Generate
         </button>
       </div>
     </div>
 
-    <!-- ==== Clay Options ==== -->
+    <!-- Clay options -->
     <div id="clayStyleBackgroundOptions" class="hidden additional-options-item mx-auto mb-4">
       <span class="text-gray-700 font-semibold">Latar Belakang 3D Clay Style:</span>
       <div class="flex items-center space-x-4">
@@ -132,7 +93,7 @@
       </div>
     </div>
 
-    <!-- ==== Additional Options ==== -->
+    <!-- Additional options -->
     <div class="additional-options-container">
       <div class="additional-options-item">
         <span class="text-gray-700 font-semibold">Rasio:</span>
@@ -165,37 +126,31 @@
       </div>
     </div>
 
-    <!-- ==== Loading ==== -->
+    <!-- Loading -->
     <div id="loadingIndicator" class="hidden text-center mt-4 text-gray-600">
       <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
       <p class="mt-2">Generating prompts...</p>
     </div>
 
-    <!-- ==== Results ==== -->
+    <!-- Results -->
     <section id="result-area" class="output bg-gray-50 p-4 rounded-lg mt-6 shadow-inner hidden w-full max-w-screen-xl mx-auto">
       <div id="generatedContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-      <button onclick="exportToCsv()"
-              class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline transition duration-300 ease-in-out w-full">
-        Export to CSV
-      </button>
+      <button onclick="exportToCsv()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md w-full">Export to CSV</button>
     </section>
   </main>
 
-  <!-- ==== API Modal ==== -->
+  <!-- API Modal -->
   <div id="apiModalOverlay" class="modal-overlay">
     <div class="modal">
       <div class="flex items-center justify-between px-5 py-4 border-b">
         <h3 class="text-lg font-semibold text-gray-800">Pasang API Gemini</h3>
-        <button id="btnCloseApiModal" class="p-2 rounded-md hover:bg-gray-100" aria-label="Tutup">
-          ✕
-        </button>
+        <button id="btnCloseApiModal" class="p-2 rounded-md hover:bg-gray-100" aria-label="Tutup">✕</button>
       </div>
       <div class="p-5">
         <div class="mb-3">
           <label for="geminiApiKey" class="block text-sm font-semibold text-gray-700 mb-1">API Key</label>
           <input id="geminiApiKey" type="password" placeholder="Masukkan API Key Gemini Anda"
-                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                 autocomplete="off">
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" autocomplete="off">
           <p id="apiStatus" class="text-xs text-gray-500 mt-1">Status: <span class="font-medium">Belum dipasang</span></p>
         </div>
         <div class="flex flex-wrap gap-2 mb-2">
@@ -207,9 +162,9 @@
           <summary class="cursor-pointer text-sm text-gray-700 font-medium select-none">Cara mendapatkan API Gemini</summary>
           <ol class="text-sm text-gray-600 mt-2 list-decimal ml-5 space-y-1">
             <li>Kunjungi <a class="text-blue-600 underline" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio – API Keys</a>.</li>
-            <li>Login & klik <em>Create API key</em> (pilih project jika diminta).</li>
-            <li>Salin API key (format: <code>AI..._...</code>), tempelkan lalu klik <strong>Simpan</strong>.</li>
-            <li><strong>Catatan:</strong> Kunci disimpan di browser Anda (localStorage). Jangan bagikan.</li>
+            <li>Login & klik <em>Create API key</em>.</li>
+            <li>Salin kuncinya (format: `AI..._...`), tempel di kolom di atas lalu klik <b>Simpan</b>.</li>
+            <li><b>Catatan:</b> Kunci disimpan di browser Anda (<i>localStorage</i>). Jangan bagikan.</li>
           </ol>
         </details>
       </div>
@@ -219,7 +174,7 @@
     </div>
   </div>
 
-  <!-- ==== Message Box ==== -->
+  <!-- Message Box -->
   <div id="messageBoxOverlay" class="message-box-overlay">
     <div class="message-box">
       <p id="messageBoxText" class="text-gray-800"></p>
@@ -232,228 +187,130 @@
     let currentGeneratedResults = [];
     const KEY_STORAGE = 'gemini_api_key';
 
-    // ===== Message box utilities =====
-    function showMessageBox(message) {
-      document.getElementById('messageBoxText').innerText = message;
-      document.getElementById('messageBoxOverlay').style.display = 'flex';
-    }
-    function hideMessageBox() {
-      document.getElementById('messageBoxOverlay').style.display = 'none';
-    }
+    // ===== Message box =====
+    function showMessageBox(message){ document.getElementById('messageBoxText').innerText = message; document.getElementById('messageBoxOverlay').style.display='flex'; }
+    function hideMessageBox(){ document.getElementById('messageBoxOverlay').style.display='none'; }
 
     // ===== Clipboard helper =====
-    async function copyText(textToCopy, typeLabel = 'Teks') {
-      try {
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = textToCopy; document.body.appendChild(ta);
-          ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-        }
-        showMessageBox(typeLabel + ' berhasil disalin!');
-      } catch (err) {
-        console.error('Clipboard error:', err);
-        showMessageBox('Gagal menyalin ' + typeLabel + '. Salin manual.');
-      }
+    async function copyText(textToCopy, typeLabel='Teks'){
+      try{
+        if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(textToCopy); }
+        else { const ta=document.createElement('textarea'); ta.value=textToCopy; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+        showMessageBox(typeLabel+' berhasil disalin!');
+      }catch(e){ console.error(e); showMessageBox('Gagal menyalin '+typeLabel+'.'); }
     }
 
-    // ===== API Key storage =====
-    function getSavedApiKey() { return localStorage.getItem(KEY_STORAGE) || ''; }
-    function setSavedApiKey(v) {
-      if (v) localStorage.setItem(KEY_STORAGE, v);
-      else localStorage.removeItem(KEY_STORAGE);
-      renderApiStatus();
-      renderApiDot();
-    }
+    // ===== API key storage =====
+    function getSavedApiKey(){ return localStorage.getItem(KEY_STORAGE)||''; }
+    function setSavedApiKey(v){ if(v) localStorage.setItem(KEY_STORAGE,v); else localStorage.removeItem(KEY_STORAGE); renderApiStatus(); renderApiDot(); }
 
-    // ===== UI: API status text + dot color =====
-    function renderApiStatus() {
-      const key = getSavedApiKey();
-      const status = document.getElementById('apiStatus');
-      const btnGenerate = document.getElementById('btnGenerate');
-      if (status) {
-        status.innerHTML = 'Status: ' + (key
-          ? '<span class="text-emerald-700 font-semibold">Terpasang</span>'
-          : '<span class="text-rose-700 font-semibold">Belum dipasang</span>');
-      }
-      if (btnGenerate) {
-        if (key) btnGenerate.removeAttribute('disabled');
-        else btnGenerate.setAttribute('disabled', 'disabled');
-      }
+    // ===== UI: API status =====
+    function renderApiStatus(){
+      const key=getSavedApiKey(), status=document.getElementById('apiStatus'), btnGenerate=document.getElementById('btnGenerate');
+      if(status) status.innerHTML='Status: '+(key?'<span class="text-emerald-700 font-semibold">Terpasang</span>':'<span class="text-rose-700 font-semibold">Belum dipasang</span>');
+      if(btnGenerate) key?btnGenerate.removeAttribute('disabled'):btnGenerate.setAttribute('disabled','disabled');
     }
-    function renderApiDot() {
-      const dot = document.getElementById('apiStatusDot');
-      if (!dot) return;
-      if (getSavedApiKey()) dot.classList.replace('bg-rose-500', 'bg-emerald-500');
-      else dot.classList.replace('bg-emerald-500', 'bg-rose-500');
+    function renderApiDot(){
+      const dot=document.getElementById('apiStatusDot'); if(!dot) return;
+      if(getSavedApiKey()) dot.classList.replace('bg-rose-500','bg-emerald-500'); else dot.classList.replace('bg-emerald-500','bg-rose-500');
     }
 
     // ===== Modal open/close =====
-    function openApiModal() {
-      const overlay = document.getElementById('apiModalOverlay');
-      const input = document.getElementById('geminiApiKey');
-      if (overlay) overlay.style.display = 'flex';
-      if (input) input.value = getSavedApiKey();
-      renderApiStatus();
-    }
-    function closeApiModal() {
-      const overlay = document.getElementById('apiModalOverlay');
-      if (overlay) overlay.style.display = 'none';
-    }
+    function openApiModal(){ const o=document.getElementById('apiModalOverlay'); const i=document.getElementById('geminiApiKey'); if(o) o.style.display='flex'; if(i) i.value=getSavedApiKey(); renderApiStatus(); }
+    function closeApiModal(){ const o=document.getElementById('apiModalOverlay'); if(o) o.style.display='none'; }
 
     // ===== API key test =====
-    async function testApiKey() {
-      const input = document.getElementById('geminiApiKey');
+    async function testApiKey(){
+      const input=document.getElementById('geminiApiKey');
       const apiKey = input.value.trim() || getSavedApiKey();
-      if (!apiKey) return showMessageBox('Masukkan API Key terlebih dahulu.');
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          showMessageBox('API Key valid & dapat digunakan.');
-        } else {
-          const err = await res.json().catch(() => ({}));
-          showMessageBox('API Key mungkin tidak valid/dibatasi.\n' + (err.error?.message || 'Periksa kembali.'));
-        }
-      } catch (e) {
-        console.error(e);
-        showMessageBox('Gagal menguji API Key (mungkin terblokir oleh jaringan/CORS).');
-      }
+      if(!apiKey) return showMessageBox('Masukkan API Key terlebih dahulu.');
+      try{
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if(res.ok) showMessageBox('API Key valid & dapat digunakan.');
+        else { const err=await res.json().catch(()=>({})); showMessageBox('API Key mungkin tidak valid/dibatasi.\n'+(err.error?.message||'Periksa kembali.')); }
+      }catch(e){ console.error(e); showMessageBox('Gagal menguji API Key (mungkin terblokir jaringan/CORS).'); }
     }
 
-    // ===== Init bindings =====
-    document.addEventListener('DOMContentLoaded', () => {
-      renderApiStatus(); renderApiDot();
+    // ===== Model selector (dropdown + custom) =====
+    const modelSelect = () => document.getElementById('modelName');
+    const customModelInput = () => document.getElementById('customModelInput');
 
-      // Open/close modal
+    function getSelectedModel(){
+      const sel = modelSelect().value;
+      if (sel === '__custom__') {
+        const v = customModelInput().value.trim();
+        return v || 'gemini-2.0-flash';
+      }
+      return sel;
+    }
+    function handleModelSelectChange(){
+      if(modelSelect().value==='__custom__'){ customModelInput().classList.remove('hidden'); customModelInput().focus(); }
+      else { customModelInput().classList.add('hidden'); }
+    }
+
+    // ===== Init =====
+    document.addEventListener('DOMContentLoaded', ()=>{
+      renderApiStatus(); renderApiDot();
       document.getElementById('btnOpenApiModal').addEventListener('click', openApiModal);
       document.getElementById('btnCloseApiModal').addEventListener('click', closeApiModal);
       document.getElementById('btnCloseApiModal2').addEventListener('click', closeApiModal);
-      document.getElementById('apiModalOverlay').addEventListener('click', (e) => {
-        if (e.target.id === 'apiModalOverlay') closeApiModal(); // click outside to close
-      });
-
-      // API actions
-      document.getElementById('btnSaveKey').addEventListener('click', () => {
-        const v = document.getElementById('geminiApiKey').value.trim();
-        if (!v) return showMessageBox('API Key kosong.');
-        setSavedApiKey(v);
-        showMessageBox('API Key disimpan di browser Anda.');
-      });
-      document.getElementById('btnClearKey').addEventListener('click', () => {
-        document.getElementById('geminiApiKey').value = '';
-        setSavedApiKey('');
-        showMessageBox('API Key dihapus dari browser.');
-      });
+      document.getElementById('apiModalOverlay').addEventListener('click',(e)=>{ if(e.target.id==='apiModalOverlay') closeApiModal(); });
+      document.getElementById('btnSaveKey').addEventListener('click',()=>{ const v=document.getElementById('geminiApiKey').value.trim(); if(!v) return showMessageBox('API Key kosong.'); setSavedApiKey(v); showMessageBox('API Key disimpan.'); });
+      document.getElementById('btnClearKey').addEventListener('click',()=>{ document.getElementById('geminiApiKey').value=''; setSavedApiKey(''); showMessageBox('API Key dihapus.'); });
       document.getElementById('btnTestKey').addEventListener('click', testApiKey);
-
-      // Generate click
       document.getElementById('btnGenerate').addEventListener('click', generatePrompts);
+      modelSelect().addEventListener('change', handleModelSelectChange);
     });
 
-    // ===== Existing helpers =====
-    function toggleClayStyleOptions() {
-      const imageStyle = document.getElementById('imageStyle').value;
-      const clayOptionsDiv = document.getElementById('clayStyleBackgroundOptions');
-      if (imageStyle === '3D Clay Style') {
-        clayOptionsDiv.classList.remove('hidden');
-      } else {
-        clayOptionsDiv.classList.add('hidden');
-      }
+    // ===== Existing UI helpers =====
+    function toggleClayStyleOptions(){
+      const v=document.getElementById('imageStyle').value; const box=document.getElementById('clayStyleBackgroundOptions');
+      if(v==='3D Clay Style') box.classList.remove('hidden'); else box.classList.add('hidden');
     }
 
-    function escapeCsv(value) {
-      if (value === null || value === undefined) return '';
-      let s = String(value);
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-        s = s.replace(/"/g, '""');
-        return `"${s}"`;
-      }
-      return s;
+    function escapeCsv(v){ if(v===null||v===undefined) return ''; let s=String(v); if(s.includes(',')||s.includes('"')||s.includes('\n')){ s=s.replace(/"/g,'""'); return `"${s}"`; } return s; }
+    function generateRandomId(n){ const ch='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let r=''; for(let i=0;i<n;i++) r+=ch.charAt(Math.floor(Math.random()*ch.length)); return 'bikin'+r; }
+
+    function exportToCsv(){
+      if(currentGeneratedResults.length===0) return showMessageBox('Tidak ada data untuk diekspor.');
+      const outputFormat=document.querySelector('input[name="outputFormat"]:checked').value;
+      let csv=''; if(outputFormat==='json'){ csv='ID Unik,Data JSON Lengkap\n'; currentGeneratedResults.forEach(it=>{ const full=JSON.stringify({title:it.title,prompt:it.prompt,negativePrompt:it.negativePrompt,uniqueId:it.uniqueId},null,2); csv+=`${escapeCsv(it.uniqueId)},${escapeCsv(full)}\n`; }); }
+      else { csv='ID Unik,Judul,Prompt Gambar,Negative Prompt\n'; currentGeneratedResults.forEach(it=>{ csv+=`${escapeCsv(it.uniqueId)},${escapeCsv(it.title)},${escapeCsv(it.prompt)},${escapeCsv(it.negativePrompt)}\n`; }); }
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
+      const kw=document.getElementById('keywords').value.trim().replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+      const now=new Date(); const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+      const a=document.createElement('a'); a.href=url; a.download=`microstock_prompts_${kw||'no_keywords'}_${ts}.csv`; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     }
 
-    function generateRandomId(length) {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) result += characters.charAt(Math.floor(Math.random() * characters.length));
-      return 'bikin' + result;
-    }
+    // ===== Core: Generate prompts via Gemini API (text models) =====
+    async function generatePrompts(){
+      const apiKey=getSavedApiKey(); if(!apiKey) return showMessageBox('Pasang API Gemini dulu (klik tombol di kiri), lalu Simpan.');
+      const keywords=document.getElementById('keywords').value.trim();
+      const imageStyle=document.getElementById('imageStyle').value;
+      const aspectRatio=document.getElementById('aspectRatio').value;
+      const outputFormat=document.querySelector('input[name="outputFormat"]:checked').value;
+      const numGenerations=parseInt(document.getElementById('numGenerations').value,10);
+      const model = getSelectedModel();
 
-    function exportToCsv() {
-      if (currentGeneratedResults.length === 0) {
-        showMessageBox('Tidak ada data untuk diekspor. Hasilkan prompt terlebih dahulu.');
-        return;
-      }
-      const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
-      let csvContent = '';
-      if (outputFormat === 'json') {
-        csvContent = 'ID Unik,Data JSON Lengkap\n';
-        currentGeneratedResults.forEach(item => {
-          const fullJsonData = JSON.stringify({
-            title: item.title, prompt: item.prompt, negativePrompt: item.negativePrompt, uniqueId: item.uniqueId
-          }, null, 2);
-          csvContent += `${escapeCsv(item.uniqueId)},${escapeCsv(fullJsonData)}\n`;
-        });
-      } else {
-        csvContent = 'ID Unik,Judul,Prompt Gambar,Negative Prompt\n';
-        currentGeneratedResults.forEach(item => {
-          csvContent += `${escapeCsv(item.uniqueId)},${escapeCsv(item.title)},${escapeCsv(item.prompt)},${escapeCsv(item.negativePrompt)}\n`;
-        });
-      }
+      if(!keywords) return showMessageBox('Please enter keywords!');
+      if(isNaN(numGenerations)||numGenerations<1||numGenerations>5) return showMessageBox('Please enter a valid number of generations (1-5).');
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const keywords = document.getElementById('keywords').value.trim().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-      const now = new Date();
-      const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-      const filename = `microstock_prompts_${keywords || 'no_keywords'}_${ts}.csv`;
-
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.style.display = 'none';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-    // ===== Core: Generate prompts via Gemini API =====
-    async function generatePrompts() {
-      const apiKey = getSavedApiKey();
-      if (!apiKey) {
-        showMessageBox('Pasang API Gemini dulu (klik tombol di kiri), lalu Simpan.');
-        return;
-      }
-
-      const keywords = document.getElementById('keywords').value.trim();
-      const imageStyle = document.getElementById('imageStyle').value;
-      const aspectRatio = document.getElementById('aspectRatio').value;
-      const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
-      const numGenerations = parseInt(document.getElementById('numGenerations').value, 10);
-
-      if (!keywords) return showMessageBox('Please enter keywords!');
-      if (isNaN(numGenerations) || numGenerations < 1 || numGenerations > 5) {
-        return showMessageBox('Please enter a valid number of generations (1-5).');
+      // Guard: block obvious video models to avoid confusion
+      if(/^veo[-\w.]*/i.test(model) || /veo/i.test(model)) {
+        return showMessageBox('Model Veo adalah model VIDEO. Aplikasi ini khusus teks. (Nanti bisa dibuat flow “Generate Video” terpisah).');
       }
 
       document.getElementById('loadingIndicator').classList.remove('hidden');
-      document.getElementById('result-area').style.display = 'none';
-      document.getElementById('generatedContent').innerHTML = '';
-      currentGeneratedResults = [];
+      document.getElementById('result-area').style.display='none';
+      document.getElementById('generatedContent').innerHTML='';
+      currentGeneratedResults=[];
 
-      try {
-        for (let i = 0; i < numGenerations; i++) {
-          let promptText =
-            `Generate a unique microstock image title, an AI art prompt, and a negative prompt based on the following keywords: ${keywords}.`;
-
-          if (imageStyle) {
-            promptText += ` The image should be in a ${imageStyle} style.`;
-            if (imageStyle === '3D Clay Style') {
-              const clayBackground = document.querySelector('input[name="clayBackground"]:checked')?.value;
-              if (clayBackground) promptText += ` with a ${clayBackground}.`;
-            }
-          }
-          if (aspectRatio) promptText += ` The image aspect ratio should be ${aspectRatio}.`;
-          promptText += ` The AI art prompt should be detailed and include artistic styles or photography terms.` +
-                        ` The negative prompt should list things to avoid.` +
-                        ` Provide the output in JSON format with 'title', 'prompt', and 'negativePrompt' keys.`;
+      try{
+        for(let i=0;i<numGenerations;i++){
+          let promptText=`Generate a unique microstock image title, an AI art prompt, and a negative prompt based on the following keywords: ${keywords}.`;
+          if(imageStyle){ promptText += ` The image should be in a ${imageStyle} style.`; if(imageStyle==='3D Clay Style'){ const bg=document.querySelector('input[name="clayBackground"]:checked')?.value; if(bg) promptText += ` with a ${bg}.`; } }
+          if(aspectRatio) promptText += ` The image aspect ratio should be ${aspectRatio}.`;
+          promptText += ` The AI art prompt should be detailed and include artistic styles or photography terms. The negative prompt should list things to avoid. Provide the output in JSON format with 'title', 'prompt', and 'negativePrompt' keys.`;
 
           const payload = {
             contents: [{ role: "user", parts: [{ text: promptText }]}],
@@ -461,97 +318,62 @@
               responseMimeType: "application/json",
               responseSchema: {
                 type: "OBJECT",
-                properties: {
-                  "title": { "type": "STRING" },
-                  "prompt": { "type": "STRING" },
-                  "negativePrompt": { "type": "STRING" }
-                },
-                propertyOrdering: ["title", "prompt", "negativePrompt"]
+                properties: { "title": { "type":"STRING" }, "prompt": { "type":"STRING" }, "negativePrompt": { "type":"STRING" } },
+                propertyOrdering: ["title","prompt","negativePrompt"]
               }
             }
           };
 
-          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+          const res = await fetch(apiUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
 
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          if (!response.ok) {
-            let msg = `HTTP ${response.status}`;
-            try {
-              const errorData = await response.json();
-              if (errorData?.error?.message) msg += ` — ${errorData.error.message}`;
-            } catch (_) {}
-            showMessageBox(`Failed to generate prompt ${i + 1}: ${msg}`);
-            break;
+          if(!res.ok){
+            let msg=`HTTP ${res.status}`; try{ const jd=await res.json(); if(jd?.error?.message) msg+=` — ${jd.error.message}`; }catch{}
+            showMessageBox(`Failed to generate prompt ${i+1}: ${msg}`); break;
           }
 
-          const result = await response.json();
-          let generatedTitle = '', generatedPrompt = '', generatedNegativePrompt = '';
-
-          if (result.candidates?.length &&
-              result.candidates[0].content?.parts?.length) {
-            const jsonString = result.candidates[0].content.parts[0].text || '';
-            try {
-              const parsed = JSON.parse(jsonString);
-              generatedTitle = parsed.title || 'No Title Generated';
-              generatedPrompt = parsed.prompt || 'No Prompt Generated';
-              generatedNegativePrompt = parsed.negativePrompt || 'No Negative Prompt Generated';
-            } catch (err) {
-              console.error('Parse JSON error:', err, jsonString);
-              showMessageBox(`Failed to parse response from AI for prompt ${i + 1}.`);
-              break;
-            }
-          } else {
-            showMessageBox(`No valid response received from AI for prompt ${i + 1}.`);
-            break;
+          const result = await res.json();
+          if(!(result.candidates?.length && result.candidates[0].content?.parts?.length)){
+            showMessageBox(`No valid response received from AI for prompt ${i+1}.`); break;
           }
 
-          const uniqueId = generateRandomId(5);
-          currentGeneratedResults.push({ title: generatedTitle, prompt: generatedPrompt, negativePrompt: generatedNegativePrompt, uniqueId });
+          const text = result.candidates[0].content.parts[0].text || '';
+          let data = { title:'No Title Generated', prompt:'No Prompt Generated', negativePrompt:'No Negative Prompt Generated' };
+          try { const parsed = JSON.parse(text); data.title = parsed.title||data.title; data.prompt = parsed.prompt||data.prompt; data.negativePrompt = parsed.negativePrompt||data.negativePrompt; }
+          catch(e){ console.error('Parse error', e, text); showMessageBox(`Failed to parse response from AI for prompt ${i+1}.`); break; }
+
+          const id=generateRandomId(5);
+          currentGeneratedResults.push({ ...data, uniqueId:id });
         }
 
-        // Render cards
-        const wrap = document.getElementById('generatedContent');
-        currentGeneratedResults.forEach(item => {
-          const card = document.createElement('div');
-          card.className = 'bg-white p-4 rounded-lg shadow-md';
-          if (outputFormat === 'json') {
-            const fullJson = JSON.stringify(item, null, 2);
-            card.innerHTML = `
+        // Render
+        const wrap=document.getElementById('generatedContent');
+        currentGeneratedResults.forEach(item=>{
+          const card=document.createElement('div'); card.className='bg-white p-4 rounded-lg shadow-md';
+          if(outputFormat==='json'){
+            const full=JSON.stringify(item,null,2);
+            card.innerHTML=`
               <h3 class="text-lg font-semibold mb-2 text-gray-800">Nama judul: ${item.title} • Image ID: ${item.uniqueId}</h3>
-              <pre class="bg-gray-100 p-2 rounded-md text-sm overflow-auto max-h-60">${fullJson}</pre>
-              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full"
-                      onclick="copyText(\`${fullJson}\`, 'Semua JSON')">Salin Semua JSON</button>
+              <pre class="bg-gray-100 p-2 rounded-md text-sm overflow-auto max-h-60">${full}</pre>
+              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full" onclick="copyText(\`${full}\`, 'Semua JSON')">Salin Semua JSON</button>
             `;
           } else {
-            const fullText = `Judul: ${item.title}\nPrompt Gambar: ${item.prompt}\nNegative Prompt: ${item.negativePrompt}\nID: ${item.uniqueId}`;
-            card.innerHTML = `
+            const full=`Judul: ${item.title}\nPrompt Gambar: ${item.prompt}\nNegative Prompt: ${item.negativePrompt}\nID: ${item.uniqueId}`;
+            card.innerHTML=`
               <h3 class="text-lg font-semibold mb-2 text-gray-800">Judul: ${item.title}</h3>
               <h4 class="text-gray-800 font-semibold mb-1">Prompt Gambar:</h4>
               <p class="text-gray-700 mb-2 break-words">${item.prompt}</p>
               <h4 class="text-gray-800 font-semibold mb-1">Negative Prompt:</h4>
               <p class="text-gray-700 mb-2 break-words">${item.negativePrompt}</p>
               <p class="text-xs text-gray-500">ID: ${item.uniqueId}</p>
-              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full"
-                      onclick="copyText(\`${fullText}\`, 'Semua Teks')">Salin Semua Teks</button>
+              <button class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md w-full" onclick="copyText(\`${full}\`, 'Semua Teks')">Salin Semua Teks</button>
             `;
           }
           wrap.appendChild(card);
         });
-
-        if (currentGeneratedResults.length > 0) {
-          document.getElementById('result-area').style.display = 'block';
-        }
-      } catch (e) {
-        console.error('Unexpected error:', e);
-        showMessageBox('Terjadi kesalahan tak terduga. Coba lagi.');
-      } finally {
-        document.getElementById('loadingIndicator').classList.add('hidden');
-      }
+        if(currentGeneratedResults.length>0) document.getElementById('result-area').style.display='block';
+      }catch(e){ console.error(e); showMessageBox('Terjadi kesalahan tak terduga.'); }
+      finally{ document.getElementById('loadingIndicator').classList.add('hidden'); }
     }
   </script>
 </body>

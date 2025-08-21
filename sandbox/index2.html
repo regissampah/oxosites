@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EventX — Glassmorphism Cards (Heroicons, Admin) + Google Sheets Sync</title>
+  <title>sandbox.atmax.id — Glass Cards + Google Sheets Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body { scroll-behavior:smooth; }
     .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
     .reveal.in{opacity:1;transform:none}
 
-    /* Hover logic: kartu yang TIDAK di-hover → putih, tanpa shadow, blur & desaturate */
     #cardsGrid.dim > article:not(.hovered){
       filter: blur(4px) brightness(1.06) saturate(0);
       transform: scale(.985);
@@ -24,7 +23,6 @@
     dialog[open]{animation:fadeIn .18s ease}
     @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
-    /* Glassmorphism base */
     .glass{
       background: rgba(255,255,255,.08);
       border: 1px solid rgba(255,255,255,.18);
@@ -35,7 +33,6 @@
 
     .media > img, .media > video{ filter: none; transition: filter .25s; }
 
-    /* Overlay tekstur, tapi tidak blok interaksi */
     .frost::before{
       content: ""; position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(1200px 600px at 20% -10%, rgba(255,255,255,.22), transparent 40%),
@@ -49,10 +46,12 @@
     <div class="max-w-6xl mx-auto px-6 flex justify-between h-16 items-center">
       <a href="#" class="flex items-center gap-2 font-semibold">
         <img src="https://i.postimg.cc/8zrThQCL/im-curious-would-astrageldon-or-goozma-win-v0-5nqjpk8wb6uc1.gif" alt="logo" class="h-8 w-8 object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-        <span>EventX</span>
+        <span>sandbox.atmax.id</span>
       </a>
       <div class="flex items-center gap-2">
-        <button id="btnSync" class="hidden md:inline-flex px-3 py-2 border rounded-full">Sync</button>
+        <button id="btnSync" class="hidden md:inline-flex p-2 border rounded-full" aria-label="Sync" title="Sync">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 9A8 8 0 0 0 7 5M4 15a8 8 0 0 0 13 4"/></svg>
+        </button>
         <button id="btnOpenLogin" class="hidden md:inline-flex px-4 py-2 bg-black text-white rounded-full">Login</button>
       </div>
     </div>
@@ -71,12 +70,13 @@
   <section id="bawah" class="py-10 md:py-16">
     <div class="max-w-6xl mx-auto px-6">
       <div id="cardsGrid" class="grid md:grid-cols-2 gap-8 min-h-[200px]"></div>
+      <p id="emptyHint" class="hidden text-sm text-slate-500 text-center py-10">Data Not Sycn..</p>
     </div>
   </section>
 
   <footer class="py-10 border-t">
     <div class="max-w-6xl mx-auto px-6 flex justify-between text-sm">
-      <p>© 2025 EventX.</p>
+      <p>© 2025 sandbox.atmax.id.</p>
       <div class="flex gap-3"><a href="#">Kebijakan Privasi</a><a href="#">Kontak</a></div>
     </div>
   </footer>
@@ -85,14 +85,13 @@
   <dialog id="loginModal" class="rounded-2xl w-full max-w-md backdrop:bg-black/40">
     <form method="dialog" class="p-6">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">Login Admin</h3>
+        <h3 class="text-lg font-semibold">Masuk Admin</h3>
         <button class="text-slate-500" value="close" aria-label="Tutup">✕</button>
       </div>
-      <input id="email" type="email" placeholder="admin@eventx.com" class="w-full border p-2 mb-2 rounded" required>
-      <input id="password" type="password" placeholder="admin123" class="w-full border p-2 mb-4 rounded" required>
+      <input id="adminCode" type="password" placeholder="Kode Admin" class="w-full border p-2 mb-4 rounded" required>
       <div class="flex justify-end gap-2">
         <button value="close" class="px-3 py-2 rounded border">Batal</button>
-        <button id="btnLogin" type="button" class="bg-black text-white px-4 py-2 rounded">Login</button>
+        <button id="btnLogin" type="button" class="bg-black text-white px-4 py-2 rounded">Masuk</button>
       </div>
     </form>
   </dialog>
@@ -125,13 +124,13 @@
           <input id="fMediaUrl" class="w-full border p-2 rounded mt-1" placeholder="https://.../bg.webp atau bg.webm">
         </label>
         <label class="text-sm md:col-span-2">Judul
-          <input id="fTitle" class="w-full border p-2 rounded mt-1" placeholder="Book Your Seat Now">
+          <input id="fTitle" class="w-full border p-2 rounded mt-1" placeholder="Judul kartu">
         </label>
         <label class="text-sm md:col-span-2">Deskripsi
-          <textarea id="fDesc" rows="3" class="w-full border p-2 rounded mt-1" placeholder="Be inspired by…"></textarea>
+          <textarea id="fDesc" rows="3" class="w-full border p-2 rounded mt-1" placeholder="Deskripsi singkat…"></textarea>
         </label>
         <label class="text-sm">Label Tombol
-          <input id="fCta" class="w-full border p-2 rounded mt-1" placeholder="Book A Seat">
+          <input id="fCta" class="w-full border p-2 rounded mt-1" placeholder="CTA">
         </label>
         <label class="text-sm">URL Tombol
           <input id="fUrl" class="w-full border p-2 rounded mt-1" placeholder="#">
@@ -147,8 +146,7 @@
   <!-- Template -->
   <template id="cardTpl">
     <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
-      <!-- Layer warna (seperti awal) -->
-      <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]" style="background:#efefef"></div>
+      <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
       <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden"></div>
       <div class="relative z-10">
         <span class="inline-flex items-center gap-2 text-sm bg-white/70 backdrop-blur px-4 py-2 rounded-full">
@@ -168,11 +166,12 @@
 
   <script>
     // ======== Konfigurasi Google Sheets Web App ========
-    // 1) Buat Apps Script (lihat instruksi di chat), deploy Web App, lalu tempel URL berikut.
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz0J9lOwDzq5KEeC0TkgUI9qAZrKwcOImcQV3NtuUwFMBkl1F07Guj5MtfX-Wwahk04RA/exec'; // contoh: https://script.google.com/macros/s/AKfycbx.../exec
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz0J9lOwDzq5KEeC0TkgUI9qAZrKwcOImcQV3NtuUwFMBkl1F07Guj5MtfX-Wwahk04RA/exec';
 
-    // ===== Storage-safe util (fallback jika localStorage tidak tersedia) =====
-    const LS_KEY = 'eventx_cards_glass_fix2';
+    // ===== Storage util (ganti KEY baru agar abaikan data lama) =====
+    const OLD_KEYS = ['eventx_cards_glass_fix2'];
+    const LS_KEY = 'eventx_cards_sheet_only_v1';
+    try{ OLD_KEYS.forEach(k=> localStorage.removeItem(k)); }catch{}
     const storage = (()=>{
       try{ const t='__test__'; localStorage.setItem(t,'1'); localStorage.removeItem(t);
         return { get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v), del:k=>localStorage.removeItem(k) };
@@ -189,21 +188,13 @@
 
     const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2);
 
-    // default 2 kartu (warna seperti awal)
-    const initialCards=[
-      {id:uid(),category:'Ticket',icon:'hero:ticket',title:'Book Your Seat Now',desc:'Wawasan baru dari keynote & workshop.',cta:'Book A Seat',url:'#',bg:'#efb7ff',mediaType:'none',mediaUrl:''},
-      {id:uid(),category:'Sponsor',icon:'hero:handshake',title:'Unlock Sponsorship Benefits',desc:'Eksposur brand & akses komunitas.',cta:'Become Sponsor',url:'#',bg:'#c6ff57',mediaType:'none',mediaUrl:''}
-    ];
-
     function safeLoad(){
       try{ const raw=storage.get(LS_KEY); if(!raw) return null; const parsed=JSON.parse(raw); return Array.isArray(parsed)?parsed:null; }
       catch(e){ storage.del(LS_KEY); return null; }
     }
 
-    if(new URLSearchParams(location.search).get('reset')==='1'){ storage.del(LS_KEY); }
-
-    let cards = safeLoad();
-    if(!cards || !cards.length){ cards = initialCards; storage.set(LS_KEY, JSON.stringify(cards)); }
+    // === NO DEFAULT SEED ===
+    let cards = safeLoad() || [];
     let admin = sessionStorage.getItem('eventx_admin')==='1';
 
     const grid=document.getElementById('cardsGrid');
@@ -212,26 +203,23 @@
     const loginModal=document.getElementById('loginModal');
     const editorModal=document.getElementById('editorModal');
     const btnSync=document.getElementById('btnSync');
+    const emptyHint=document.getElementById('emptyHint');
 
     // ====== Google Sheets sync helpers ======
     async function remoteList(){
-      if(!API_URL || API_URL.includes('PASTE')) throw new Error('API_URL belum dikonfigurasi');
       const res = await fetch(API_URL + '?action=list', { cache:'no-store' });
       if(!res.ok) throw new Error('List failed');
       return res.json();
     }
 
     async function remoteSaveAll(){
-      if(!API_URL || API_URL.includes('PASTE')) return {ok:false,skipped:true};
       const res = await fetch(API_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
+        method:'POST', headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ action:'upsertAll', data: cards })
       });
       return res.ok ? res.json() : {ok:false};
     }
 
-    // ===== UI helpers =====
     function renderIcon(target, val){
       target.innerHTML='';
       if(!val){ target.textContent='•'; return; }
@@ -287,15 +275,22 @@
       revealInit();
       if(adminBar) adminBar.classList.toggle('hidden', !admin);
       if(btnSync) btnSync.classList.toggle('hidden', !admin);
+      if(emptyHint) emptyHint.classList.toggle('hidden', (cards && cards.length>0));
     }
 
     // ===== Auth & editor =====
     const btnOpenLogin=document.getElementById('btnOpenLogin'); if(btnOpenLogin) btnOpenLogin.addEventListener('click',()=> loginModal?.showModal());
-    const btnLogin=document.getElementById('btnLogin'); if(btnLogin) btnLogin.addEventListener('click',()=>{
-      const email = document.getElementById('email').value.trim();
-      const pass  = document.getElementById('password').value;
-      if(email==='admin@eventx.com' && pass==='admin123'){ admin = true; sessionStorage.setItem('eventx_admin','1'); loginModal?.close(); render(); }
-      else { alert('Email atau password salah (demo: admin@eventx.com / admin123)'); }
+
+    async function getAdminCode(){
+      try{ const res = await fetch(API_URL + '?action=adminCode', { cache:'no-store' }); if(!res.ok) return null; const data = await res.json(); return (data && data.code) ? String(data.code) : null; }catch{ return null; }
+    }
+
+    const btnLogin=document.getElementById('btnLogin'); if(btnLogin) btnLogin.addEventListener('click', async ()=>{
+      const inputCode = (document.getElementById('adminCode')?.value || '').trim();
+      const serverCode = await getAdminCode();
+      const ok = serverCode ? (inputCode === serverCode) : !!inputCode; // fallback jika endpoint belum ada
+      if(ok){ admin = true; sessionStorage.setItem('eventx_admin','1'); loginModal?.close(); render(); }
+      else { alert('Kode admin salah.'); }
     });
     const btnLogout=document.getElementById('btnLogout'); if(btnLogout) btnLogout.addEventListener('click',()=>{ admin=false; sessionStorage.removeItem('eventx_admin'); render(); });
 
@@ -355,18 +350,18 @@
       catch(err){ alert('Sync gagal: ' + (err.message||err)); }
     });
 
-    // Init (prefer remote, fallback ke lokal)
+    // Init (prefer remote; TIDAK ADA FALLBACK default)
     (async function init(){
-      try{ const data = await remoteList(); if(Array.isArray(data) && data.length){ cards = data; storage.set(LS_KEY, JSON.stringify(cards)); } }
-      catch(e){ /* offline / belum set API_URL → pakai lokal */ }
+      try{ const data = await remoteList(); if(Array.isArray(data)){ cards = data; storage.set(LS_KEY, JSON.stringify(cards)); } }
+      catch(e){ /* jika gagal, biarkan kosong */ }
       render();
     })();
 
-    // ===== Tampilan fallback kalau JS error sebelum render =====
+    // Fallback error text jika masih kosong dan JS jalan
     if(!document.getElementById('cardsGrid').children.length){
       const fallback = document.createElement('div');
-      fallback.className='text-sm text-red-600';
-      fallback.textContent='Memuat kartu… (jika tetap kosong, tambahkan ?reset=1 pada URL)';
+      fallback.className='text-sm text-slate-400';
+      fallback.textContent='Menunggu data… (klik Sync setelah login admin)';
       document.getElementById('cardsGrid').appendChild(fallback);
     }
   </script>

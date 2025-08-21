@@ -195,8 +195,12 @@
 
     function log(msg){
       const t = new Date().toLocaleTimeString();
-      logEl().textContent += `[${t}] ${msg}\n`;
-      logEl().scrollTop = logEl().scrollHeight;
+      if (logEl()) {
+        logEl().textContent += `[${t}] ${msg}
+`;
+        logEl().scrollTop = logEl().scrollHeight;
+      }
+      console.debug('[LOG]', msg);
     }
 
     function getApiKey(){ return localStorage.getItem(KEY_STORAGE) || ''; }
@@ -213,11 +217,14 @@
       return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
     }
 
+    // FIX: previously contained stray characters causing a JS parse error
     function wrapWithProxy(fullUrl){
-      const p = getProxy();
+      const pRaw = getProxy();
+      const p = (pRaw || '').trim();
       if (!p) return fullUrl;
-      if (p.includes('{url}')) return p.replace('{url}', encodeURIComponent(fullUrl));
-      return p.replace(/\/$/, '') + '/' + fullUrl; // naive join
+      // For proxies like cors.isomorphic-git.org, do NOT percent-encode {url}
+      if (p.includes('{url}')) return p.replace('{url}', fullUrl);
+      return p.replace(/\/$/, '') + '/' + fullUrl; // naive join (no encoding)
     }
 
     async function safeFetchJson(url, options = {}, extra = {}){
@@ -272,6 +279,8 @@
       const b=$('apiBaseInput'); if (b) b.value = getApiBase();
       const p=$('corsProxyInput'); if (p) p.value = getProxy();
       renderApiStatus();
+      // autofocus ke input API key
+      setTimeout(()=>{ $('apiKeyInput')?.focus(); }, 0);
     }
     function closeApiModal(){ const m=$('apiModal'); if (m) m.style.display='none'; }
 
@@ -286,7 +295,8 @@
         const reason = r.isNetworkError ? 'network/CORS' : ('HTTP ' + r.status);
         setConnectivityBadge(false, reason);
         log('Tes koneksi gagal: ' + (r.error || reason));
-        alert('Tes koneksi gagal: ' + (r.error || reason) + "\nCoba isi CORS Proxy di modal (gunakan {url}).");
+        alert('Tes koneksi gagal: ' + (r.error || reason) + "
+Coba isi CORS Proxy di modal (gunakan {url}).");
       }
     }
 
@@ -298,7 +308,8 @@
       log('Uji kunci: GET ' + url);
       const r = await safeFetchJson(url, { method: 'GET' });
       if (r.ok) { log('API Key valid.'); alert('API Key valid.'); setConnectivityBadge(true); }
-      else { const reason = r.isNetworkError ? 'network/CORS' : ('HTTP ' + r.status); log('Tes API gagal: ' + (r.error || reason)); alert('Tes API gagal: ' + (r.error || reason) + "\nJika CORS, isi field CORS Proxy."); setConnectivityBadge(false, reason); }
+      else { const reason = r.isNetworkError ? 'network/CORS' : ('HTTP ' + r.status); log('Tes API gagal: ' + (r.error || reason)); alert('Tes API gagal: ' + (r.error || reason) + "
+Jika CORS, isi field CORS Proxy."); setConnectivityBadge(false, reason); }
     }
 
     function setBusy(on){
@@ -321,9 +332,7 @@
         tries++;
         onTick?.(tries);
         log('Polling status…');
-        // FIX: Google LRO returns name like "operations/xyz" atau
-        // "models/veo-3.0.../operations/abc". Endpoint yang benar adalah GET /v1beta/{name}
-        // BUKAN /v1beta/operations/{name}. Juga JANGAN pakai encodeURIComponent untuk '/'.
+        // Use the exact name path from the API (operations/... or models/.../operations/...)
         const opPath = (name.startsWith('operations/') || name.startsWith('models/'))
           ? '/' + encodeURI(name) // keep slashes
           : '/operations/' + encodeURIComponent(name);
@@ -370,7 +379,7 @@
       $('btnCopyUri').classList.add('hidden');
       $('opName').textContent = '';
       $('progressText').textContent = 'Mengirim permintaan…';
-      logEl().textContent = '';
+      if (logEl()) logEl().textContent = '';
       CANCEL_FLAG = false;
       setBusy(true);
 
@@ -518,7 +527,7 @@
         setApiBase('https://example.com/api'); setProxy('https://proxy.test/{url}');
         const full = buildUrl('/models');
         const wrapped = wrapWithProxy(full);
-        const ok = full === 'https://example.com/api/models' && wrapped.startsWith('https://proxy.test/');
+        const ok = full === 'https://example.com/api/models' && wrapped === 'https://proxy.test/' + full;
         addTestLine(ok, 'buildUrl()/wrapWithProxy() membentuk URL yang benar'); if (ok) passed++;
         // cleanup
         setApiBase(BASE_DEFAULT); setProxy('');
@@ -538,6 +547,17 @@
 
         addTestLine(ok1 && ok2, 'Polling memakai /{name}?key= (tanpa duplikasi /operations)'); if (ok1 && ok2) passed++;
       } catch { addTestLine(false, 'Cek operations URL gagal'); }
+
+      // Test 6: proxy placeholder tidak di-encode (khusus isomorphic-git)
+      total++;
+      try {
+        setProxy('https://cors.isomorphic-git.org/{url}');
+        const full = buildUrl('/models?key=XYZ');
+        const wrapped = wrapWithProxy(full);
+        const ok = wrapped === 'https://cors.isomorphic-git.org/' + full; // no percent-encoding
+        addTestLine(ok, 'CORS proxy tidak melakukan percent-encode pada {url}'); if (ok) passed++;
+        setProxy('');
+      } catch { addTestLine(false, 'Cek proxy placeholder gagal'); }
 
       const s=$('testSummary'); if (s) s.textContent = `Hasil: ${passed}/${total} tes lulus`;
       console.log(`Self tests: ${passed}/${total} passed`);

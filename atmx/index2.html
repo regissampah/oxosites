@@ -18,22 +18,23 @@
       justify-content: space-between;
     }
     .scrolling-wrapper {
-      white-space: nowrap;
-      display: inline-block;
-      font-weight: 800;
-      font-size: 8rem;
-      line-height: 1;
-      will-change: transform;
-      animation: scrollRightToLeft 220s linear infinite;
-    }
-    @keyframes scrollRightToLeft {
-      0% {
-        transform: translateX(-100%);
-      }
-      100% {
-        transform: translateX(100%);
-      }
-    }
+  white-space: nowrap;
+  display: inline-block;
+  font-weight: 800;
+  font-size: 8rem;
+  line-height: 1;
+  will-change: transform;
+  animation: scrollLeftToRight 220s linear infinite; /* Change animation name */
+}
+
+@keyframes scrollLeftToRight { /* Changed direction */
+  0% {
+    transform: translateX(100%); /* Start from the right */
+  }
+  100% {
+    transform: translateX(-100%); /* End at the left */
+  }
+}
     @media (min-width: 768px) {
       .scrolling-wrapper {
         font-size: 12rem;

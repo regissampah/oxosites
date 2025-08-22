@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>sandbox.atmax.id — Glass Cards + Google Sheets Sync</title>
+  <title>sandbox.atmax.id — Glass Cards + Supabase Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.27.0"></script>
   <style>
     html, body { scroll-behavior:smooth; }
     .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
@@ -70,7 +71,7 @@
   <section id="bawah" class="py-10 md:py-16">
     <div class="max-w-6xl mx-auto px-6">
       <div id="cardsGrid" class="grid md:grid-cols-2 gap-8 min-h-[200px]"></div>
-      <p id="emptyHint" class="hidden text-sm text-slate-500 text-center py-10">Data Not Sycn..</p>
+      <p id="emptyHint" class="hidden text-sm text-slate-500 text-center py-10">Data Not Synced..</p>
     </div>
   </section>
 
@@ -165,219 +166,79 @@
   </template>
 
   <script>
-    // ======== Konfigurasi Google Sheets Web App ========
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwuinEaCCF_1ri-N9P1PqOCF56eCr9Pvu3hoh2xmEsmioV-ych3wdBfdpBmsRr5IeAESA/exec';  // Ganti dengan URL Web App kamu
+    // ==== Supabase Setup ====
+    const supabaseUrl = 'https://bugabvtinpghqrvcmjcn.supabase.co;  // Ganti dengan URL Supabase kamu
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Z2FidnRpbnBnaHFydmNtamNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4Mjk0MDEsImV4cCI6MjA3MTQwNTQwMX0.011JJm-K1w8mFZ9GxHzl64vHuzUmaaKOd2S0y-nHAdY';  // Ganti dengan public anon key Supabase kamu
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function fetchData() {
-  try {
-    const response = await fetch(API_URL + '?action=list', { method: 'GET' });
-    const data = await response.json();
-    console.log('Data:', data);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-fetchData();
-
-
-
-    // ===== Storage util (ganti KEY baru agar abaikan data lama) =====
-    const OLD_KEYS = ['eventx_cards_glass_fix2'];
-    const LS_KEY = 'eventx_cards_sheet_only_v1';
-    try{ OLD_KEYS.forEach(k=> localStorage.removeItem(k)); }catch{}
-    const storage = (()=>{
-      try{ const t='__test__'; localStorage.setItem(t,'1'); localStorage.removeItem(t);
-        return { get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v), del:k=>localStorage.removeItem(k) };
-      }catch(e){ const mem={}; return { get:k=> (k in mem?mem[k]:null), set:(k,v)=>{mem[k]=v}, del:k=>{delete mem[k]} }; }
-    })();
-
-    // ===== ICONS (Heroicons subset, inline) =====
-    const HERO = {
-      ticket: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 8a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a2 2 0 1 0 0 4v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a2 2 0 1 0 0-4V8zM9 8v8m6-8v8"/></svg>',
-      handshake: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 8.5 10 11l4-3 2.5 2.5-6.5 5a2 2 0 0 1-2.8-.2L4 12l3.5-3.5zM20 7l-2-2-4 3 2 2 4-3z"/></svg>',
-      calendar: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h2a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2V2zm12 6H5v10h14V8z"/></svg>',
-      megaphone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4l9 3V7L3 10zm15-3v10a4 4 0 0 0 3 0V7a4 4 0 0 0-3 0z"/></svg>'
-    };
-
-    const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2);
-
-    function safeLoad(){
-      try{ const raw=storage.get(LS_KEY); if(!raw) return null; const parsed=JSON.parse(raw); return Array.isArray(parsed)?parsed:null; }
-      catch(e){ storage.del(LS_KEY); return null; }
-    }
-
-    // === NO DEFAULT SEED ===
-    let cards = safeLoad() || [];
-    let admin = sessionStorage.getItem('eventx_admin')==='1';
-
-    const grid=document.getElementById('cardsGrid');
-    const tpl=document.getElementById('cardTpl');
-    const adminBar=document.getElementById('adminBar');
-    const loginModal=document.getElementById('loginModal');
-    const editorModal=document.getElementById('editorModal');
-    const btnSync=document.getElementById('btnSync');
-    const emptyHint=document.getElementById('emptyHint');
-
-    // ====== Google Sheets sync helpers ======
-    async function remoteList(){
-      const res = await fetch(API_URL + '?action=list', { cache:'no-store' });
-      if(!res.ok) throw new Error('List failed');
-      return res.json();
-    }
-
-    async function remoteSaveAll(){
-      const res = await fetch(API_URL, {
-        method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ action:'upsertAll', data: cards })
-      });
-      return res.ok ? res.json() : {ok:false};
-    }
-
-    function renderIcon(target, val){
-      target.innerHTML='';
-      if(!val){ target.textContent='•'; return; }
-      if(val.startsWith('http')){
-        const img=document.createElement('img'); img.src=val; img.alt='icon'; img.className='w-5 h-5 object-contain'; target.appendChild(img);
-      } else if(val.includes('<svg')){ target.innerHTML=val; }
-      else if(val.startsWith('hero:')){ const key=val.replace('hero:',''); target.innerHTML = HERO[key] || '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>'; }
-      else { target.textContent=val; }
-    }
-
-    function buildMedia(host, type, url){
-      host.innerHTML = '';
-      if(!url || type==='none') return;
-      if(type==='image'){
-        const img = document.createElement('img'); img.src = url; img.alt = ''; img.className = 'w-full h-full object-cover opacity-90'; host.appendChild(img);
-      } else if(type==='video'){
-        const vid = document.createElement('video'); vid.src = url; vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true; vid.className = 'w-full h-full object-cover opacity-90'; host.appendChild(vid);
+    let cards = [];
+    let admin = sessionStorage.getItem('eventx_admin') === '1';
+    const grid = document.getElementById('cardsGrid');
+    const tpl = document.getElementById('cardTpl');
+    const btnSync = document.getElementById('btnSync');
+    const emptyHint = document.getElementById('emptyHint');
+  
+    // Ambil data dari Supabase
+    async function remoteList() {
+      const { data, error } = await supabase
+        .from('cards') 
+        .select('*');
+      if (error) {
+        console.error('Error fetching data from Supabase:', error.message);
+        return [];
       }
+      return data;
     }
 
-    function isExternal(href){ try{ const u = new URL(href, location.href); return u.origin !== location.origin; }catch{ return false; } }
-
-    function revealInit(){
-      const els = document.querySelectorAll('.reveal');
-      if(!('IntersectionObserver' in window)){ els.forEach(el=>el.classList.add('in')); return; }
-      const io = new IntersectionObserver((entries)=>{ for(const e of entries){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } } },{ threshold: .14 });
-      els.forEach(el=> io.observe(el));
+    // Simpan data ke Supabase
+    async function remoteSaveAll() {
+      const { data, error } = await supabase
+        .from('cards')
+        .upsert(cards, { onConflict: ['id'] });
+      if (error) {
+        console.error('Error saving data to Supabase:', error.message);
+        return { ok: false };
+      }
+      return { ok: true, count: data.length };
     }
 
-    function render(){
-      if(!grid || !tpl) return;
-      grid.innerHTML='';
-      (cards||[]).forEach(c=>{
+    // Render data
+    function render() {
+      grid.innerHTML = '';
+      cards.forEach(c => {
         const node = tpl.content.cloneNode(true);
         const art = node.querySelector('article');
         const mediaHost = node.querySelector('.media');
         const colorLayer = node.querySelector('.colorLayer');
-        if(colorLayer) colorLayer.style.background = c.bg || '#efefef';
+        if (colorLayer) colorLayer.style.background = c.bg || '#efefef';
         buildMedia(mediaHost, c.mediaType, c.mediaUrl);
-        node.querySelector('.badge').textContent=c.category||'';
+        node.querySelector('.badge').textContent = c.category || '';
         renderIcon(node.querySelector('.icon'), c.icon);
-        node.querySelector('.title').textContent=c.title||'';
-        node.querySelector('.desc').textContent=c.desc||'';
-        const btn=node.querySelector('.btn');
-        if(btn){ btn.href=c.url||'#'; btn.target=isExternal(c.url)?'_blank':'_self'; btn.rel=isExternal(c.url)?'noopener noreferrer':'noopener'; btn.addEventListener('click',()=> grid.classList.remove('dim')); }
-        const cta=node.querySelector('.cta'); if(cta) cta.textContent=c.cta||'Learn more';
-        art.addEventListener('mouseenter',()=>{ grid.classList.add('dim'); art.classList.add('hovered'); });
-        art.addEventListener('mouseleave',()=>{ grid.classList.remove('dim'); art.classList.remove('hovered'); });
-        const editBtn = node.querySelector('.editBtn');
-        if(admin){ editBtn.classList.remove('hidden'); editBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); openEditor(c.id); }); art.style.cursor='pointer'; art.addEventListener('click', ()=> openEditor(c.id)); }
+        node.querySelector('.title').textContent = c.title || '';
+        node.querySelector('.desc').textContent = c.desc || '';
+        const btn = node.querySelector('.btn');
+        if (btn) {
+          btn.href = c.url || '#';
+        }
         grid.appendChild(node);
       });
-      revealInit();
-      if(adminBar) adminBar.classList.toggle('hidden', !admin);
-      if(btnSync) btnSync.classList.toggle('hidden', !admin);
-      if(emptyHint) emptyHint.classList.toggle('hidden', (cards && cards.length>0));
+      if (emptyHint) emptyHint.classList.toggle('hidden', cards.length > 0);
     }
 
-    // ===== Auth & editor =====
-    const btnOpenLogin=document.getElementById('btnOpenLogin'); if(btnOpenLogin) btnOpenLogin.addEventListener('click',()=> loginModal?.showModal());
-
-    async function getAdminCode(){
-      try{ const res = await fetch(API_URL + '?action=adminCode', { cache:'no-store' }); if(!res.ok) return null; const data = await res.json(); return (data && data.code) ? String(data.code) : null; }catch{ return null; }
-    }
-
-    const btnLogin=document.getElementById('btnLogin'); if(btnLogin) btnLogin.addEventListener('click', async ()=>{
-      const inputCode = (document.getElementById('adminCode')?.value || '').trim();
-      const serverCode = await getAdminCode();
-      const ok = serverCode ? (inputCode === serverCode) : !!inputCode; // fallback jika endpoint belum ada
-      if(ok){ admin = true; sessionStorage.setItem('eventx_admin','1'); loginModal?.close(); render(); }
-      else { alert('Kode admin salah.'); }
-    });
-    const btnLogout=document.getElementById('btnLogout'); if(btnLogout) btnLogout.addEventListener('click',()=>{ admin=false; sessionStorage.removeItem('eventx_admin'); render(); });
-
-    const editorForm=document.getElementById('editorForm');
-    const btnAddCard=document.getElementById('btnAddCard'); if(btnAddCard) btnAddCard.addEventListener('click',()=> openEditor());
-    const btnDeleteCard=document.getElementById('btnDeleteCard');
-    let editingId=null;
-
-    function openEditor(id){
-      editingId = id || null;
-      const c = cards.find(x=>x.id===id) || {category:'',icon:'hero:megaphone',bg:'#efb7ff',mediaType:'none',mediaUrl:'',title:'',desc:'',cta:'',url:'#'};
-      document.getElementById('fCategory').value=c.category||'';
-      document.getElementById('fIcon').value=c.icon||'';
-      document.getElementById('fBg').value=c.bg||'#efb7ff';
-      document.getElementById('fMediaType').value=c.mediaType||'none';
-      document.getElementById('fMediaUrl').value=c.mediaUrl||'';
-      document.getElementById('fTitle').value=c.title||'';
-      document.getElementById('fDesc').value=c.desc||'';
-      document.getElementById('fCta').value=c.cta||'';
-      document.getElementById('fUrl').value=c.url||'#';
-      document.getElementById('editorTitle').textContent = id ? 'Edit Kotak' : 'Tambah Kotak';
-      if(btnDeleteCard) btnDeleteCard.classList.toggle('hidden', !id);
-      editorModal?.showModal();
-    }
-
-    if(btnDeleteCard) btnDeleteCard.addEventListener('click',()=>{
-      if(!editingId) return;
-      cards = cards.filter(x=>x.id!==editingId);
-      storage.set(LS_KEY, JSON.stringify(cards));
-      editorModal?.close(); render();
-      remoteSaveAll().catch(()=>{});
-    });
-
-    if(editorForm) editorForm.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const payload = {
-        id: editingId || (window.crypto?.randomUUID?.() || 'id-'+Math.random().toString(36).slice(2)),
-        category: document.getElementById('fCategory').value,
-        icon: document.getElementById('fIcon').value,
-        bg: document.getElementById('fBg').value || '#efb7ff',
-        mediaType: document.getElementById('fMediaType').value,
-        mediaUrl: document.getElementById('fMediaUrl').value,
-        title: document.getElementById('fTitle').value,
-        desc: document.getElementById('fDesc').value,
-        cta: document.getElementById('fCta').value || 'Learn more',
-        url: document.getElementById('fUrl').value || '#'
-      };
-      const idx = cards.findIndex(x=>x.id===editingId);
-      if(idx>=0) cards[idx]=payload; else cards.push(payload);
-      storage.set(LS_KEY, JSON.stringify(cards));
-      editorModal?.close(); render();
-      remoteSaveAll().catch(()=>{});
-    });
-
-    if(btnSync) btnSync.addEventListener('click', async ()=>{
-      try{ const data = await remoteList(); if(Array.isArray(data)){ cards = data; storage.set(LS_KEY, JSON.stringify(cards)); render(); } }
-      catch(err){ alert('Sync gagal: ' + (err.message||err)); }
-    });
-
-    // Init (prefer remote; TIDAK ADA FALLBACK default)
-    (async function init(){
-      try{ const data = await remoteList(); if(Array.isArray(data)){ cards = data; storage.set(LS_KEY, JSON.stringify(cards)); } }
-      catch(e){ /* jika gagal, biarkan kosong */ }
+    // Initialize app
+    async function init() {
+      try {
+        const data = await remoteList();
+        if (Array.isArray(data)) {
+          cards = data;
+        }
+      } catch (e) {
+        console.error('Error during data fetching:', e.message);
+      }
       render();
-    })();
-
-    // Fallback error text jika masih kosong dan JS jalan
-    if(!document.getElementById('cardsGrid').children.length){
-      const fallback = document.createElement('div');
-      fallback.className='text-sm text-slate-400';
-      fallback.textContent='Menunggu data… (klik Sync setelah login admin)';
-      document.getElementById('cardsGrid').appendChild(fallback);
     }
+
+    init();
   </script>
 </body>
 </html>

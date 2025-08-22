@@ -13,7 +13,7 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    text-align: center;  /* Center text in the container */
+    text-align: center;
 }
 
 .container {
@@ -22,27 +22,28 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column; /* Align content in a column layout */
+    flex-direction: column;
 }
 
 .hero {
     text-align: center;
     max-width: 800px;
     margin: 0 20px;
-    flex-grow: 1;  /* Make the hero section take up full space */
+    flex-grow: 1;
 }
 
 h1 {
-    font-size: 7rem;  /* Increase font size for the heading */
-    margin-bottom: 20px;
-    font-weight: bold;  /* Make the heading bold like in the image */
+    font-size: 9rem;  /* Larger font size for 'Let’s work together' */
+    font-weight: bold;
+    margin-bottom: 40px;
+    letter-spacing: -0.05em; /* Adjust for a more compact look */
 }
 
 .intro {
     font-size: 1.25rem;
-    margin-bottom: 40px;
     font-weight: 300;
     line-height: 1.6;
+    margin-bottom: 40px;
 }
 
 .social-links {
@@ -57,11 +58,17 @@ h1 {
     color: #fff;
     font-size: 1.25rem;
     font-weight: 400;
-    text-transform: uppercase;  /* Match the uppercase style of the links */
+    text-transform: uppercase;
 }
 
 .social-links a:hover {
     opacity: 0.7;
+}
+
+.email {
+    font-size: 1.25rem;
+    font-weight: 300;
+    margin-bottom: 40px;
 }
 
 .back-to-top {
@@ -76,13 +83,13 @@ h1 {
 
 /* Full-Screen Background */
 body {
-    height: 100vh;  /* Ensure body covers full viewport height */
+    height: 100vh;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     h1 {
-        font-size: 4.5rem;  /* Adjust font size for tablet */
+        font-size: 5.5rem; /* Adjust for smaller screens */
     }
     
     .intro {
@@ -96,7 +103,7 @@ body {
 
 @media (max-width: 480px) {
     h1 {
-        font-size: 3.5rem;  /* Further adjust font size for mobile */
+        font-size: 4rem;  /* Adjust for very small screens */
     }
     
     .intro {

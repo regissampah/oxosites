@@ -52,27 +52,17 @@
         <button id="btnSync" class="hidden md:inline-flex p-2 border rounded-full" aria-label="Sync" title="Sync">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 9A8 8 0 0 0 7 5M4 15a8 8 0 0 0 13 4"/></svg>
         </button>
-        <button id="btnOpenLogin" class="hidden md:inline-flex px-4 py-2 bg-black text-white rounded-full">Login</button>
       </div>
     </div>
   </header>
 
-  <!-- Admin bar -->
-  <div id="adminBar" class="hidden sticky top-16 z-40 bg-indigo-600 text-white">
-    <div class="max-w-6xl mx-auto px-6 py-2 flex gap-3 text-sm items-center">
-      <span class="font-semibold">Mode Admin</span>
-      <button id="btnAddCard" class="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition">+ Tambah Kotak</button>
-      <button id="btnLogout" class="ms-auto px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition">Logout</button>
-    </div>
-  </div>
-
-  <!-- Cards -->
+  <!-- Cards Section -->
   <section id="bawah" class="py-10 md:py-16">
     <div class="max-w-6xl mx-auto px-6">
       <div id="cardsGrid" class="grid md:grid-cols-2 gap-8 min-h-[200px]">
-        <!-- Default Cards -->
+        <!-- Default Card 1 -->
         <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
-          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
+          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]" style="background: #efb7ff;"></div>
           <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden">
             <img src="https://via.placeholder.com/300x200" alt="Card Image" class="w-full h-full object-cover opacity-90">
           </div>
@@ -83,15 +73,16 @@
             </span>
             <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">Event Ticket</h3>
             <p class="mt-4 text-slate-800/90 desc">Get your event ticket now.</p>
-            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" target="_self" rel="noopener">
+            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" href="#" target="_self" rel="noopener">
               <span class="font-semibold cta">Buy Now</span>
               <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
             </a>
           </div>
         </article>
 
+        <!-- Default Card 2 -->
         <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
-          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
+          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]" style="background: #ffb3b3;"></div>
           <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden">
             <img src="https://via.placeholder.com/300x200" alt="Card Image" class="w-full h-full object-cover opacity-90">
           </div>
@@ -102,7 +93,7 @@
             </span>
             <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">Event Sponsor</h3>
             <p class="mt-4 text-slate-800/90 desc">Become a sponsor for this amazing event.</p>
-            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" target="_self" rel="noopener">
+            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" href="#" target="_self" rel="noopener">
               <span class="font-semibold cta">Sponsor Now</span>
               <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
             </a>
@@ -121,7 +112,7 @@
   </footer>
 
   <script>
-    // Simulasi penambahan data kartu langsung tanpa Supabase
+    // Render langsung data kartu default
     const cards = [
       {
         title: "Event Ticket",
@@ -147,7 +138,6 @@
       }
     ];
 
-    // Render data langsung dari array cards
     function render() {
       const grid = document.getElementById('cardsGrid');
       grid.innerHTML = '';

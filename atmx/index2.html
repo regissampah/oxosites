@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrolling H1 Loop with Hover Blur Effect</title>
+  <title>Scrolling H1 Loop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
@@ -19,7 +19,6 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: filter 0.3s ease-in-out; /* Smooth transition for blur effect */
     }
 
     .main-container {
@@ -34,8 +33,8 @@
       font-size: 8rem;
       line-height: 1;
       will-change: transform;
-      animation: scrollLeftToRight 40s linear infinite;
-      z-index: 10; /* Ensure the scrolling text stays above other content */
+      animation: scrollLeftToRight 90s linear infinite;
+      z-index: 10;
       position: relative;
     }
 
@@ -61,29 +60,19 @@
 
     @media (min-width: 768px) {
       .scrolling-wrapper {
-        font-size: 9rem;
+        font-size: 14rem;
       }
     }
 
-    /* Initially, apply no blur to the whole page */
-    body {
-      filter: none;
-    }
-
-    /* Circle that follows the cursor to keep the area clear */
+    /* Circle that follows the cursor */
     .clear-area {
       position: absolute;
       background: rgba(0, 0, 0, 0); /* Fully transparent area (clear) */
       border-radius: 50%;
-      pointer-events: none; /* Ensure it does not interfere with the mouse interaction */
+      pointer-events: none;
       transition: width 0.2s, height 0.2s;
       border: 3px solid rgba(255, 255, 255, 0.5); /* Solid line around the cursor */
-      z-index: 20; /* Ensure it's above everything else */
-    }
-
-    /* Apply blur effect to everything except the cursor area */
-    .scrolling-wrapper.blur {
-      filter: blur(5px); /* Apply blur effect to everything inside */
+      z-index: 20;
     }
 
   </style>
@@ -92,7 +81,6 @@
   <div class="main-container">
     <div class="flex justify-start items-center px-8 md:px-16 py-12 md:py-20 overflow-hidden flex-grow">
       <div class="scrolling-wrapper">
-        <!-- Text will repeat with a bullet symbol in between -->
         <span>Let’s work together</span>
         <span>Let’s work together</span>
         <span>Let’s work together</span>
@@ -105,67 +93,15 @@
       <div class="flex flex-col space-y-4">
         <a href="#" class="flex items-center space-x-1 text-[#eeeae8] hover:underline">
           <span>Instagram</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#eeeae8"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="17" y1="7" x2="7" y2="17" />
-            <polyline points="8 7 17 7 17 16" />
-          </svg>
         </a>
         <a href="#" class="flex items-center space-x-1 text-[#eeeae8] hover:underline">
           <span>Twitter</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#eeeae8"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="17" y1="7" x2="7" y2="17" />
-            <polyline points="8 7 17 7 17 16" />
-          </svg>
         </a>
         <a href="#" class="flex items-center space-x-1 text-[#eeeae8] hover:underline">
           <span>LinkedIn</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#eeeae8"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="17" y1="7" x2="7" y2="17" />
-            <polyline points="8 7 17 7 17 16" />
-          </svg>
         </a>
         <a href="#" class="flex items-center space-x-1 text-[#eeeae8] hover:underline">
           <span>Dribbble</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#eeeae8"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="17" y1="7" x2="7" y2="17" />
-            <polyline points="8 7 17 7 17 16" />
-          </svg>
         </a>
         <a href="mailto:hello@martintaylor.com" class="pt-8 text-[#eeeae8] hover:underline">
           hello@martintaylor.com
@@ -204,14 +140,7 @@
       clearArea.style.top = `${mouseY - radius}px`;
     });
 
-    // Event listeners for hover on .scrolling-wrapper
-    const scrollingWrapper = document.querySelector('.scrolling-wrapper');
-    scrollingWrapper.addEventListener('mouseenter', () => {
-      scrollingWrapper.classList.add('blur'); // Apply blur to everything inside the wrapper
-    });
-    scrollingWrapper.addEventListener('mouseleave', () => {
-      scrollingWrapper.classList.remove('blur'); // Remove blur when leaving
-    });
+    // No blur effects are applied anymore.
   </script>
 </body>
 </html>

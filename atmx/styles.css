@@ -13,6 +13,7 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;  /* Center text in the container */
 }
 
 .container {
@@ -21,23 +22,27 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column; /* Align content in a column layout */
 }
 
 .hero {
     text-align: center;
     max-width: 800px;
     margin: 0 20px;
+    flex-grow: 1;  /* Make the hero section take up full space */
 }
 
 h1 {
-    font-size: 5rem;
+    font-size: 7rem;  /* Increase font size for the heading */
     margin-bottom: 20px;
+    font-weight: bold;  /* Make the heading bold like in the image */
 }
 
 .intro {
     font-size: 1.25rem;
     margin-bottom: 40px;
     font-weight: 300;
+    line-height: 1.6;
 }
 
 .social-links {
@@ -52,6 +57,7 @@ h1 {
     color: #fff;
     font-size: 1.25rem;
     font-weight: 400;
+    text-transform: uppercase;  /* Match the uppercase style of the links */
 }
 
 .social-links a:hover {
@@ -65,12 +71,18 @@ h1 {
     display: inline-block;
     margin-top: 40px;
     font-weight: 500;
+    letter-spacing: 0.1em;
+}
+
+/* Full-Screen Background */
+body {
+    height: 100vh;  /* Ensure body covers full viewport height */
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     h1 {
-        font-size: 3.5rem;
+        font-size: 4.5rem;  /* Adjust font size for tablet */
     }
     
     .intro {
@@ -84,7 +96,7 @@ h1 {
 
 @media (max-width: 480px) {
     h1 {
-        font-size: 2.5rem;
+        font-size: 3.5rem;  /* Further adjust font size for mobile */
     }
     
     .intro {

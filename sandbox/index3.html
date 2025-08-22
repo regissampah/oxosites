@@ -97,78 +97,10 @@
     </form>
   </dialog>
 
-  <!-- EDITOR MODAL -->
-  <dialog id="editorModal" class="rounded-2xl w-full max-w-2xl backdrop:bg-black/40">
-    <form id="editorForm" class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 id="editorTitle" class="text-lg font-semibold">Tambah Kotak</h3>
-        <button type="button" class="text-slate-500" onclick="editorModal.close()" aria-label="Tutup">✕</button>
-      </div>
-      <div class="grid md:grid-cols-2 gap-4">
-        <label class="text-sm">Kategori
-          <input id="fCategory" class="w-full border p-2 rounded mt-1" placeholder="Ticket / Sponsor / Update">
-        </label>
-        <label class="text-sm">Ikon (emoji/URL/SVG/Heroicon)
-          <input id="fIcon" class="w-full border p-2 rounded mt-1" placeholder="hero:ticket atau 🎟️ atau https://.../icon.svg">
-        </label>
-        <label class="text-sm">Warna Latar (#hex)
-          <input id="fBg" class="w-full border p-2 rounded mt-1" placeholder="#efb7ff">
-        </label>
-        <label class="text-sm">Tipe Media
-          <select id="fMediaType" class="w-full border p-2 rounded mt-1">
-            <option value="none">None</option>
-            <option value="image">Gambar</option>
-            <option value="video">Video</option>
-          </select>
-        </label>
-        <label class="text-sm md:col-span-2">URL Media (opsional)
-          <input id="fMediaUrl" class="w-full border p-2 rounded mt-1" placeholder="https://.../bg.webp atau bg.webm">
-        </label>
-        <label class="text-sm md:col-span-2">Judul
-          <input id="fTitle" class="w-full border p-2 rounded mt-1" placeholder="Judul kartu">
-        </label>
-        <label class="text-sm md:col-span-2">Deskripsi
-          <textarea id="fDesc" rows="3" class="w-full border p-2 rounded mt-1" placeholder="Deskripsi singkat…"></textarea>
-        </label>
-        <label class="text-sm">Label Tombol
-          <input id="fCta" class="w-full border p-2 rounded mt-1" placeholder="CTA">
-        </label>
-        <label class="text-sm">URL Tombol
-          <input id="fUrl" class="w-full border p-2 rounded mt-1" placeholder="#">
-        </label>
-      </div>
-      <div class="flex justify-between mt-4">
-        <button type="button" id="btnDeleteCard" class="hidden text-red-600">Hapus</button>
-        <button type="submit" class="bg-black text-white px-4 py-2 rounded">Simpan</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Template -->
-  <template id="cardTpl">
-    <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
-      <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
-      <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden"></div>
-      <div class="relative z-10">
-        <span class="inline-flex items-center gap-2 text-sm bg-white/70 backdrop-blur px-4 py-2 rounded-full">
-          <span class="icon w-5 h-5 grid place-items-center text-slate-700"></span>
-          <span class="badge">Kategori</span>
-        </span>
-        <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">Title</h3>
-        <p class="mt-4 text-slate-800/90 desc">Desc</p>
-        <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" target="_self" rel="noopener">
-          <span class="font-semibold cta">CTA</span>
-          <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
-        </a>
-        <button class="editBtn hidden absolute top-4 right-4 bg-black/70 text-white text-xs px-2 py-1 rounded">Edit</button>
-      </div>
-    </article>
-  </template>
-
   <script>
     // ==== Supabase Setup ====
-    const supabaseUrl = 'https://bugabvtinpghqrvcmjcn.supabase.co';  // Ganti dengan URL Supabase kamu
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Z2FidnRpbnBnaHFydmNtamNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4Mjk0MDEsImV4cCI6MjA3MTQwNTQwMX0.011JJm-K1w8mFZ9GxHzl64vHuzUmaaKOd2S0y-nHAdY';  // Ganti dengan public anon key Supabase kamu
+    const supabaseUrl = 'https://YOUR_PROJECT_REF.supabase.co';  // Ganti dengan URL Supabase kamu
+    const supabaseKey = 'YOUR_PUBLIC_ANON_KEY';  // Ganti dengan public anon key Supabase kamu
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);  // Pastikan Supabase diinisialisasi terlebih dahulu
 
     let cards = [];

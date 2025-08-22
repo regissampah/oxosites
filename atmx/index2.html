@@ -27,12 +27,12 @@
   animation: scrollLeftToRight 220s linear infinite; /* Change animation name */
 }
 
-@keyframes scrollLeftToRight { /* Changed direction */
+@keyframes scrollLeftToRight {
   0% {
-    transform: translateX(100%); /* Start from the right */
+    transform: translateX(100vw); /* Start off-screen on the right */
   }
   100% {
-    transform: translateX(-100%); /* End at the left */
+    transform: translateX(-100vw); /* End off-screen on the left */
   }
 }
     @media (min-width: 768px) {

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>sandbox.atmax.id — Glass Cards + Supabase Sync</title>
+  <title>sandbox.atmax.id — Glass Cards</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.27.0"></script>
   <style>
     html, body { scroll-behavior:smooth; }
     .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
@@ -70,7 +69,46 @@
   <!-- Cards -->
   <section id="bawah" class="py-10 md:py-16">
     <div class="max-w-6xl mx-auto px-6">
-      <div id="cardsGrid" class="grid md:grid-cols-2 gap-8 min-h-[200px]"></div>
+      <div id="cardsGrid" class="grid md:grid-cols-2 gap-8 min-h-[200px]">
+        <!-- Default Cards -->
+        <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
+          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
+          <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden">
+            <img src="https://via.placeholder.com/300x200" alt="Card Image" class="w-full h-full object-cover opacity-90">
+          </div>
+          <div class="relative z-10">
+            <span class="inline-flex items-center gap-2 text-sm bg-white/70 backdrop-blur px-4 py-2 rounded-full">
+              <span class="icon w-5 h-5 grid place-items-center text-slate-700">🎟️</span>
+              <span class="badge">Ticket</span>
+            </span>
+            <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">Event Ticket</h3>
+            <p class="mt-4 text-slate-800/90 desc">Get your event ticket now.</p>
+            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" target="_self" rel="noopener">
+              <span class="font-semibold cta">Buy Now</span>
+              <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="reveal glass frost rounded-[28px] p-8 md:p-10 border relative overflow-hidden transition">
+          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]"></div>
+          <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden">
+            <img src="https://via.placeholder.com/300x200" alt="Card Image" class="w-full h-full object-cover opacity-90">
+          </div>
+          <div class="relative z-10">
+            <span class="inline-flex items-center gap-2 text-sm bg-white/70 backdrop-blur px-4 py-2 rounded-full">
+              <span class="icon w-5 h-5 grid place-items-center text-slate-700">🎤</span>
+              <span class="badge">Sponsor</span>
+            </span>
+            <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">Event Sponsor</h3>
+            <p class="mt-4 text-slate-800/90 desc">Become a sponsor for this amazing event.</p>
+            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" target="_self" rel="noopener">
+              <span class="font-semibold cta">Sponsor Now</span>
+              <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
+            </a>
+          </div>
+        </article>
+      </div>
       <p id="emptyHint" class="hidden text-sm text-slate-500 text-center py-10">Data Not Synced..</p>
     </div>
   </section>
@@ -82,131 +120,65 @@
     </div>
   </footer>
 
-  <!-- LOGIN MODAL -->
-  <dialog id="loginModal" class="rounded-2xl w-full max-w-md backdrop:bg-black/40">
-    <form method="dialog" class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">Masuk Admin</h3>
-        <button class="text-slate-500" value="close" aria-label="Tutup">✕</button>
-      </div>
-      <input id="adminCode" type="email" placeholder="Email Admin" class="w-full border p-2 mb-4 rounded" required>
-      <div class="flex justify-end gap-2">
-        <button value="close" class="px-3 py-2 rounded border">Batal</button>
-        <button id="btnLogin" type="button" class="bg-black text-white px-4 py-2 rounded">Masuk</button>
-      </div>
-    </form>
-  </dialog>
-
   <script>
-    // ==== Supabase Setup ====
-    const supabaseUrl = 'https://YOUR_PROJECT_REF.supabase.co';  // Ganti dengan URL Supabase kamu
-    const supabaseKey = 'YOUR_PUBLIC_ANON_KEY';  // Ganti dengan public anon key Supabase kamu
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);  // Pastikan Supabase diinisialisasi terlebih dahulu
-
-    let cards = [];
-    let admin = sessionStorage.getItem('eventx_admin') === '1';
-    const grid = document.getElementById('cardsGrid');
-    const tpl = document.getElementById('cardTpl');
-    const btnSync = document.getElementById('btnSync');
-    const emptyHint = document.getElementById('emptyHint');
-  
-    // Fungsi login menggunakan Supabase Auth
-    async function login() {
-      const email = document.getElementById('adminCode').value;  // Menggunakan input adminCode sebagai email
-      const password = 'your_admin_password';  // Password admin yang sudah kamu buat di Supabase
-
-      const { user, session, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) {
-        alert('Login failed: ' + error.message);
-      } else {
-        console.log('User logged in:', user);
-        sessionStorage.setItem('eventx_admin', '1');
-        render();  // Refresh render setelah login berhasil
-        loginModal?.close();  // Menutup modal login setelah login berhasil
+    // Simulasi penambahan data kartu langsung tanpa Supabase
+    const cards = [
+      {
+        title: "Event Ticket",
+        category: "Ticket",
+        icon: "🎟️",
+        bg: "#efb7ff",
+        mediaType: "image",
+        mediaUrl: "https://via.placeholder.com/300x200",
+        desc: "Get your event ticket now.",
+        cta: "Buy Now",
+        url: "#"
+      },
+      {
+        title: "Event Sponsor",
+        category: "Sponsor",
+        icon: "🎤",
+        bg: "#ffb3b3",
+        mediaType: "image",
+        mediaUrl: "https://via.placeholder.com/300x200",
+        desc: "Become a sponsor for this amazing event.",
+        cta: "Sponsor Now",
+        url: "#"
       }
-    }
+    ];
 
-    // Menambahkan event listener untuk tombol login
-    const btnLogin = document.getElementById('btnLogin');
-    if (btnLogin) {
-      btnLogin.addEventListener('click', async () => {
-        await login();  // Panggil fungsi login
-      });
-    }
-
-    // Menambahkan event listener untuk tombol login di header
-    const btnOpenLogin = document.getElementById('btnOpenLogin');
-    if (btnOpenLogin) {
-      btnOpenLogin.addEventListener('click', () => {
-        loginModal?.showModal();  // Menampilkan modal login
-      });
-    }
-
-    // Ambil data dari Supabase
-    async function remoteList() {
-      const { data, error } = await supabase
-        .from('cards')
-        .select('*');
-      if (error) {
-        console.error('Error fetching data from Supabase:', error.message);
-        return [];
-      }
-      return data;
-    }
-
-    // Simpan data ke Supabase
-    async function remoteSaveAll() {
-      const { data, error } = await supabase
-        .from('cards')
-        .upsert(cards, { onConflict: ['id'] });
-      if (error) {
-        console.error('Error saving data to Supabase:', error.message);
-        return { ok: false };
-      }
-      return { ok: true, count: data.length };
-    }
-
-    // Render data
+    // Render data langsung dari array cards
     function render() {
+      const grid = document.getElementById('cardsGrid');
       grid.innerHTML = '';
       cards.forEach(c => {
-        const node = tpl.content.cloneNode(true);
-        const art = node.querySelector('article');
-        const mediaHost = node.querySelector('.media');
-        const colorLayer = node.querySelector('.colorLayer');
-        if (colorLayer) colorLayer.style.background = c.bg || '#efefef';
-        buildMedia(mediaHost, c.mediaType, c.mediaUrl);
-        node.querySelector('.badge').textContent = c.category || '';
-        renderIcon(node.querySelector('.icon'), c.icon);
-        node.querySelector('.title').textContent = c.title || '';
-        node.querySelector('.desc').textContent = c.desc || '';
-        const btn = node.querySelector('.btn');
-        if (btn) {
-          btn.href = c.url || '#';
-        }
+        const node = document.createElement('article');
+        node.classList.add('reveal', 'glass', 'frost', 'rounded-[28px]', 'p-8', 'md:p-10', 'border', 'relative', 'overflow-hidden', 'transition');
+
+        node.innerHTML = `
+          <div class="colorLayer absolute inset-0 -z-20 rounded-[28px]" style="background: ${c.bg};"></div>
+          <div class="media absolute inset-0 -z-10 rounded-[28px] overflow-hidden">
+            <img src="${c.mediaUrl}" alt="Card Image" class="w-full h-full object-cover opacity-90">
+          </div>
+          <div class="relative z-10">
+            <span class="inline-flex items-center gap-2 text-sm bg-white/70 backdrop-blur px-4 py-2 rounded-full">
+              <span class="icon w-5 h-5 grid place-items-center text-slate-700">${c.icon}</span>
+              <span class="badge">${c.category}</span>
+            </span>
+            <h3 class="mt-6 text-2xl md:text-3xl font-extrabold tracking-tight title">${c.title}</h3>
+            <p class="mt-4 text-slate-800/90 desc">${c.desc}</p>
+            <a class="btn mt-6 inline-flex items-center gap-3 bg-white/80 backdrop-blur px-5 py-2.5 rounded-full hover:bg-white" href="${c.url}" target="_self" rel="noopener">
+              <span class="font-semibold cta">${c.cta}</span>
+              <span class="grid place-items-center w-9 h-9 rounded-full bg-neutral-900 text-white">→</span>
+            </a>
+          </div>
+        `;
+
         grid.appendChild(node);
       });
-      if (emptyHint) emptyHint.classList.toggle('hidden', cards.length > 0);
     }
 
-    // Initialize app
-    async function init() {
-      try {
-        const data = await remoteList();
-        if (Array.isArray(data)) {
-          cards = data;
-        }
-      } catch (e) {
-        console.error('Error during data fetching:', e.message);
-      }
-      render();
-    }
-
-    init();
+    render();
   </script>
 </body>
 </html>

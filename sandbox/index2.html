@@ -166,22 +166,20 @@
 
   <script>
     // ======== Konfigurasi Google Sheets Web App ========
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz583io41Pr8pMQC4vWIRMsJDxgXQtUQkVKRtDYh0iga2_gCWuu8o5pvkzd9budNiF_XQ/exec'; // Ganti dengan URL Web App kamu
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxZjAnu_hpbRumMw_6vKFFKBB3PHG4c7nZMJ54TjbOFfNhy63WDdOY6TzXZPIffZT2w/exec';  // Ganti dengan URL Web App kamu
 
-async function syncData() {
+async function fetchData() {
   try {
-    const response = await fetch(API_URL, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await fetch(API_URL + '?action=list', { method: 'GET' });
     const data = await response.json();
-    console.log('Data dari Google Sheets:', data);
+    console.log('Data:', data);
   } catch (error) {
-    console.error('Error syncing data:', error);
+    console.error('Error:', error);
   }
 }
 
-syncData();
+fetchData();
+
 
 
     // ===== Storage util (ganti KEY baru agar abaikan data lama) =====

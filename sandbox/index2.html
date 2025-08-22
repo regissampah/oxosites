@@ -89,7 +89,7 @@
         <h3 class="text-lg font-semibold">Masuk Admin</h3>
         <button class="text-slate-500" value="close" aria-label="Tutup">✕</button>
       </div>
-      <input id="adminCode" type="password" placeholder="Kode Admin" class="w-full border p-2 mb-4 rounded" required>
+      <input id="adminCode" type="email" placeholder="Email Admin" class="w-full border p-2 mb-4 rounded" required>
       <div class="flex justify-end gap-2">
         <button value="close" class="px-3 py-2 rounded border">Batal</button>
         <button id="btnLogin" type="button" class="bg-black text-white px-4 py-2 rounded">Masuk</button>
@@ -167,7 +167,7 @@
 
   <script>
     // ==== Supabase Setup ====
-    const supabaseUrl = 'https://bugabvtinpghqrvcmjcn.supabase.co;  // Ganti dengan URL Supabase kamu
+    const supabaseUrl = 'https://bugabvtinpghqrvcmjcn.supabase.co';  // Ganti dengan URL Supabase kamu
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Z2FidnRpbnBnaHFydmNtamNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4Mjk0MDEsImV4cCI6MjA3MTQwNTQwMX0.011JJm-K1w8mFZ9GxHzl64vHuzUmaaKOd2S0y-nHAdY';  // Ganti dengan public anon key Supabase kamu
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -178,10 +178,30 @@
     const btnSync = document.getElementById('btnSync');
     const emptyHint = document.getElementById('emptyHint');
   
+    // Fungsi login menggunakan Supabase Auth
+    async function login() {
+      const email = document.getElementById('adminCode').value;  // Menggunakan input adminCode sebagai email
+      const password = 'your_admin_password';  // Password admin yang sudah kamu buat di Supabase
+
+      const { user, session, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        alert('Login failed: ' + error.message);
+      } else {
+        console.log('User logged in:', user);
+        sessionStorage.setItem('eventx_admin', '1');
+        render();  // Refresh render setelah login berhasil
+        loginModal?.close();  // Menutup modal login setelah login berhasil
+      }
+    }
+
     // Ambil data dari Supabase
     async function remoteList() {
       const { data, error } = await supabase
-        .from('cards') 
+        .from('cards')
         .select('*');
       if (error) {
         console.error('Error fetching data from Supabase:', error.message);

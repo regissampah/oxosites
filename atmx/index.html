@@ -27,8 +27,20 @@
       font-size: 8rem;
       line-height: 1;
       will-change: transform;
-      animation: scrollLeftToRight 15s linear infinite;
+      animation: scrollLeftToRight 90s linear infinite; /* Slowed down animation */
     }
+
+    /* Add the bullet between the repeated text */
+    .scrolling-wrapper span {
+      padding-right: 2rem; /* space between the words */
+    }
+
+    .scrolling-wrapper span::after {
+      content: " •"; /* Bullet symbol */
+      padding-left: 1rem;
+    }
+
+    /* Animation to move the text horizontally */
     @keyframes scrollLeftToRight {
       0% {
         transform: translateX(-100%);
@@ -37,6 +49,7 @@
         transform: translateX(100%);
       }
     }
+
     @media (min-width: 768px) {
       .scrolling-wrapper {
         font-size: 9rem;
@@ -47,7 +60,12 @@
 <body>
   <div class="flex justify-start items-center px-8 md:px-16 py-12 md:py-20 overflow-hidden flex-grow">
     <div class="scrolling-wrapper">
-      Let’s work together
+      <!-- Text will repeat with a bullet symbol in between -->
+      <span>Let’s work together</span>
+      <span>Let’s work together</span>
+      <span>Let’s work together</span>
+      <span>Let’s work together</span>
+      <span>Let’s work together</span>
     </div>
   </div>
 

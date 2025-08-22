@@ -166,7 +166,23 @@
 
   <script>
     // ======== Konfigurasi Google Sheets Web App ========
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwswmOBcZDNryICoGVV4ecvQay2HxqxNGa8YILQ46jSPmDls9jN-WLuvuUqZXQeww54/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz583io41Pr8pMQC4vWIRMsJDxgXQtUQkVKRtDYh0iga2_gCWuu8o5pvkzd9budNiF_XQ/exec'; // Ganti dengan URL Web App kamu
+
+async function syncData() {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    console.log('Data dari Google Sheets:', data);
+  } catch (error) {
+    console.error('Error syncing data:', error);
+  }
+}
+
+syncData();
+
 
     // ===== Storage util (ganti KEY baru agar abaikan data lama) =====
     const OLD_KEYS = ['eventx_cards_glass_fix2'];

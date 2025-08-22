@@ -181,7 +181,7 @@
    // Fungsi login menggunakan Supabase Auth
 async function login() {
   const email = document.getElementById('adminCode').value;  // Menggunakan input adminCode sebagai email
-  const password = 'your_admin_password';  // Password admin yang sudah kamu buat di Supabase
+  const password = 'atmax2025';  // Password admin yang sudah kamu buat di Supabase
 
   const { user, session, error } = await supabase.auth.signInWithPassword({
     email: email,
